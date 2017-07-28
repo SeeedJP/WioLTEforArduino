@@ -229,6 +229,7 @@ bool WioLTE::TurnOnOrReset()
 	SerialUSB.println("");
 
 	if (!WriteCommandAndWaitForResponse("ATE0", "OK", 500)) return false;
+	if (!WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"usbat\"", "OK", 500)) return false;
 
 	sw.Start();
 	while (!WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000)) {
