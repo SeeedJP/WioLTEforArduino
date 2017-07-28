@@ -92,6 +92,14 @@ bool WioLTE::ReadLine(char* data, int dataSize)
   return false; // Overflow.
 }
 
+void WioLTE::Write(const char* str)
+{
+	SerialUSB.print("<- ");
+	DebugPrint(str);
+
+	_Serial->write(str);
+}
+
 void WioLTE::WriteCommand(const char* command)
 {
   SerialUSB.print("<- ");
@@ -114,10 +122,28 @@ bool WioLTE::WaitForResponse(const char* response)
   return true;
 }
 
+bool WioLTE::WaitForResponse(const char* response, long timeout)
+{
+	long preTimeout = _Timeout;
+	SetTimeout(timeout);
+
+	bool result = WaitForResponse(response);
+
+	SetTimeout(preTimeout);
+
+	return result;
+}
+
 bool WioLTE::WriteCommandAndWaitForResponse(const char* command, const char* response)
 {
   WriteCommand(command);
   return WaitForResponse(response);
+}
+
+bool WioLTE::WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout)
+{
+	WriteCommand(command);
+	return WaitForResponse(response, timeout);
 }
 
 WioLTE::WioLTE() : _Serial(&Serial1), _Timeout(2000)
@@ -169,6 +195,20 @@ bool WioLTE::TurnOn()
   SerialUSB.println("");
 
   return true;
+}
+
+bool WioLTE::SendSMS(const char* dialNumber, const char* message)
+{
+	if (!WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500)) return false;
+
+	char* str = (char*)alloca(10 + strlen(dialNumber) + 1);
+	sprintf(str, "AT+CMGS=\"%s\"", dialNumber);
+	if (!WriteCommandAndWaitForResponse(str, "", 500)) return false;
+	Write(message);
+	Write("\x1a");
+	if (!WaitForResponse("OK", 120000)) return false;
+
+	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

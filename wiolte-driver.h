@@ -28,9 +28,12 @@ private:
 	bool ReadLine(char* data, int dataSize);
 
 public:
+	void Write(const char* str);
 	void WriteCommand(const char* command);
 	bool WaitForResponse(const char* response);
+	bool WaitForResponse(const char* response, long timeout);
 	bool WriteCommandAndWaitForResponse(const char* command, const char* response);
+	bool WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
 public:
 	WioLTE();
@@ -39,6 +42,7 @@ public:
 	bool IsBusy() const;
 	bool TurnOn();
 
+	bool SendSMS(const char* dialNumber, const char* message);
 
 public:
 	class Stopwatch
