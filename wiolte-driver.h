@@ -34,15 +34,17 @@ public:
 	bool WriteCommandAndWaitForResponse(const char* command, const char* response);
 	bool WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
+	bool Reset();
+	bool TurnOn();
+
 public:
 	WioLTE();
 	void Init();
 	void PowerSupplyLTE(bool on);
 	void PowerSupplyGNSS(bool on);
 	void PowerSupplyGrove(bool on);
-	bool Reset();
 	bool IsBusy() const;
-	bool TurnOn();
+	bool TurnOnOrReset();
 
 	bool SendSMS(const char* dialNumber, const char* message);
 
