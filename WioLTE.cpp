@@ -152,17 +152,39 @@ WioLTE::WioLTE() : _Serial(&Serial1), _Timeout(2000)
 
 void WioLTE::Init()
 {
-  // Turn on/off Pins
-  PinModeAndDefault(PWR_KEY_PIN, OUTPUT, LOW);
-  PinModeAndDefault(RESET_MODULE_PIN, OUTPUT, HIGH);
-  // Status Indication Pins
-  PinModeAndDefault(STATUS_PIN, INPUT);
-  // GPIO Pins
-  PinModeAndDefault(WAKEUP_IN_PIN, OUTPUT, LOW);
-  PinModeAndDefault(WAKEUP_DISABLE_PIN, OUTPUT, HIGH);
-  //PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
+	// Power supply
+	PinModeAndDefault(MODULE_PWR_PIN, OUTPUT, LOW);
+	PinModeAndDefault(ANT_PWR_PIN, OUTPUT, LOW);
+	PinModeAndDefault(ENABLE_VCCB_PIN, OUTPUT, LOW);
+
+	// Turn on/off Pins
+	PinModeAndDefault(PWR_KEY_PIN, OUTPUT, LOW);
+	PinModeAndDefault(RESET_MODULE_PIN, OUTPUT, HIGH);
+
+	// Status Indication Pins
+	PinModeAndDefault(STATUS_PIN, INPUT);
+
+	// GPIO Pins
+	PinModeAndDefault(WAKEUP_IN_PIN, OUTPUT, LOW);
+	PinModeAndDefault(WAKEUP_DISABLE_PIN, OUTPUT, HIGH);
+	//PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
   
-  _Serial->begin(115200);
+	_Serial->begin(115200);
+}
+
+void WioLTE::PowerSupplyLTE(bool on)
+{
+	digitalWrite(MODULE_PWR_PIN, on ? HIGH : LOW);
+}
+
+void WioLTE::PowerSupplyGNSS(bool on)
+{
+	digitalWrite(ANT_PWR_PIN, on ? HIGH : LOW);
+}
+
+void WioLTE::PowerSupplyGrove(bool on)
+{
+	digitalWrite(ENABLE_VCCB_PIN, on ? HIGH : LOW);
 }
 
 void WioLTE::Reset() 
