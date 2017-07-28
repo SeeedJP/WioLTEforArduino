@@ -28,6 +28,7 @@ public:
 	void Write(const char* str);
 	void WriteCommand(const char* command);
 	bool WaitForResponse(const char* response, long timeout);
+	bool WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout);
 	bool WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
 	bool Reset();

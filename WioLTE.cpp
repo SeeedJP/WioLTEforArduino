@@ -110,7 +110,23 @@ bool WioLTE::WaitForResponse(const char* response, long timeout)
 		if (!ReadLine(data, sizeof(data), timeout)) return false;
 		SerialUSB.print("-> ");
 		DebugPrint(data);
-	} while (strcmp(data, response) != 0);
+	} while (strcmp(response, data) != 0);
+
+	return true;
+}
+
+bool WioLTE::WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout)
+{
+	char data[MODULE_RESPONSE_MAX_SIZE];
+	int responseLength = strlen(response);
+	do {
+		if (!ReadLine(data, sizeof(data), timeout)) return false;
+		SerialUSB.print("-> ");
+		DebugPrint(data);
+	} while (strncmp(response, data, responseLength) != 0);
+
+	if (strlen(data) - responseLength + 1 > parameterSize) return false;
+	strcpy(parameter, &data[responseLength]);
 
 	return true;
 }
