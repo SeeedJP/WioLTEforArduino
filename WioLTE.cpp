@@ -52,13 +52,7 @@ void WioLTE::DiscardRead()
 	while (_Serial->available()) _Serial->read();
 }
 
-void WioLTE::SetTimeout(long timeout)
-{
-	_Timeout = timeout;
-	_Serial->setTimeout(_Timeout);
-}
-
-bool WioLTE::ReadLine(char* data, int dataSize)
+bool WioLTE::ReadLine(char* data, int dataSize, long timeout)
 {
 	int dataIndex = 0;
 
@@ -66,7 +60,7 @@ bool WioLTE::ReadLine(char* data, int dataSize)
 	while (dataIndex < dataSize - 1) {
 		sw.Start();
 		while (!_Serial->available()) {
-			if (sw.ElapsedMilliseconds() > _Timeout) {
+			if (sw.ElapsedMilliseconds() > timeout) {
 				data[dataIndex] = '\0';
 				return false; // Timeout.
 			}
@@ -109,34 +103,16 @@ void WioLTE::WriteCommand(const char* command)
 	_Serial->write('\r');
 }
 
-bool WioLTE::WaitForResponse(const char* response)
+bool WioLTE::WaitForResponse(const char* response, long timeout)
 {
 	char data[MODULE_RESPONSE_MAX_SIZE];
 	do {
-		if (!ReadLine(data, sizeof(data))) return false;
+		if (!ReadLine(data, sizeof(data), timeout)) return false;
 		SerialUSB.print("-> ");
 		DebugPrint(data);
 	} while (strcmp(data, response) != 0);
 
 	return true;
-}
-
-bool WioLTE::WaitForResponse(const char* response, long timeout)
-{
-	long preTimeout = _Timeout;
-	SetTimeout(timeout);
-
-	bool result = WaitForResponse(response);
-
-	SetTimeout(preTimeout);
-
-	return result;
-}
-
-bool WioLTE::WriteCommandAndWaitForResponse(const char* command, const char* response)
-{
-	WriteCommand(command);
-	return WaitForResponse(response);
 }
 
 bool WioLTE::WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout)
@@ -189,7 +165,7 @@ bool WioLTE::TurnOn()
 	return true;
 }
 
-WioLTE::WioLTE() : _Serial(&Serial1), _Timeout(2000)
+WioLTE::WioLTE() : _Serial(&Serial1)
 {
 }
 

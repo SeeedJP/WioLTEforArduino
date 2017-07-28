@@ -19,19 +19,15 @@ private:
 
 private:
 	HardwareSerial* _Serial;
-	long _Timeout;
 
 private:
 	void DiscardRead();
-	void SetTimeout(long timeout);
-	bool ReadLine(char* data, int dataSize);
+	bool ReadLine(char* data, int dataSize, long timeout);
 
 public:
 	void Write(const char* str);
 	void WriteCommand(const char* command);
-	bool WaitForResponse(const char* response);
 	bool WaitForResponse(const char* response, long timeout);
-	bool WriteCommandAndWaitForResponse(const char* command, const char* response);
 	bool WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
 	bool Reset();
