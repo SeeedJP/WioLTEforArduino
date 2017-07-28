@@ -248,7 +248,7 @@ bool WioLTE::TurnOnOrReset()
 	if (!WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"usbat\"", "OK", 500)) return false;
 
 	sw.Start();
-	while (!WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000)) {
+	while (!WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000)) {	// TODO
 		SerialUSB.print(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
@@ -261,12 +261,42 @@ bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
 	if (!WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500)) return false;
 
-	char* str = (char*)alloca(10 + strlen(dialNumber) + 1);
+	char* str = (char*)alloca(9 + strlen(dialNumber) + 1 + 1);
 	sprintf(str, "AT+CMGS=\"%s\"", dialNumber);
 	if (!WriteCommandAndWaitForResponse(str, "", 500)) return false;
 	Write(message);
 	Write("\x1a");
 	if (!WaitForResponse("OK", 120000)) return false;
+
+	return true;
+}
+
+bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password)
+{
+	char parameter[MODULE_RESPONSE_MAX_SIZE];
+
+	WriteCommand("AT+CREG?");
+	if (!WaitForResponse("+CREG: ", parameter, sizeof(parameter), 500)) return false;
+	if (strcmp(parameter, "0,1") != 0) return false;	// TODO
+	if (!WaitForResponse("OK", 500)) return false;
+
+	WriteCommand("AT+CGREG?");
+	if (!WaitForResponse("+CGREG: ", parameter, sizeof(parameter), 500)) return false;
+	if (strcmp(parameter, "0,1") != 0) return false;	// TODO
+	if (!WaitForResponse("OK", 500)) return false;
+
+	WriteCommand("AT+CEREG?");
+	if (!WaitForResponse("+CEREG: ", parameter, sizeof(parameter), 500)) return false;
+	if (strcmp(parameter, "0,1") != 0) return false;	// TODO
+	if (!WaitForResponse("OK", 500)) return false;
+
+	char* str = (char*)alloca(15 + strlen(accessPointName) + 3 + strlen(userName) + 3 + strlen(password) + 3 + 1);
+	sprintf(str, "AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password);
+	if (!WriteCommandAndWaitForResponse(str, "OK", 500)) return false;
+
+	if (!WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000)) return false;
+
+	if (!WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000)) return false;
 
 	return true;
 }
