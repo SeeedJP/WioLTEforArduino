@@ -40,7 +40,7 @@ public:
 	void PowerSupplyLTE(bool on);
 	void PowerSupplyGNSS(bool on);
 	void PowerSupplyGrove(bool on);
-	void Reset();
+	bool Reset();
 	bool IsBusy() const;
 	bool TurnOn();
 
