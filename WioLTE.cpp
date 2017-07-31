@@ -2,7 +2,19 @@
 #include <stdio.h>
 #include "wiolte-driver.h"
 
-#define MODULE_RESPONSE_MAX_SIZE  (100)
+//#define DEBUG
+
+#define MODULE_RESPONSE_MAX_SIZE	(100)
+
+#ifdef DEBUG
+#define DEBUG_PRINT(str)			SerialUSB.print(str)
+#define DEBUG_PRINTLN(str)			SerialUSB.println(str)
+#define DEBUG_PRINTLN_DUMP(data)	DebugPrintlnDump(data)
+#else
+#define DEBUG_PRINT(str)
+#define DEBUG_PRINTLN(str)
+#define DEBUG_PRINTLN_DUMP(data)
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -18,7 +30,7 @@ static void PinModeAndDefault(int pin, WiringPinMode mode, int value)
 	if (mode == OUTPUT) digitalWrite(pin, value);
 }
 
-static void DebugPrint(const char* data)
+static void DebugPrintlnDump(const char* data)
 {
 	char message[10];
 	int length = strlen(data);
@@ -88,16 +100,16 @@ bool WioLTE::ReadLine(char* data, int dataSize, long timeout)
 
 void WioLTE::Write(const char* str)
 {
-	SerialUSB.print("<- ");
-	DebugPrint(str);
+	DEBUG_PRINT("<- ");
+	DEBUG_PRINTLN_DUMP(str);
 
 	_Serial->write(str);
 }
 
 void WioLTE::WriteCommand(const char* command)
 {
-	SerialUSB.print("<- ");
-	DebugPrint(command);
+	DEBUG_PRINT("<- ");
+	DEBUG_PRINTLN_DUMP(command);
 
 	_Serial->write(command);
 	_Serial->write('\r');
@@ -108,8 +120,8 @@ bool WioLTE::WaitForResponse(const char* response, long timeout)
 	char data[MODULE_RESPONSE_MAX_SIZE];
 	do {
 		if (!ReadLine(data, sizeof(data), timeout)) return false;
-		SerialUSB.print("-> ");
-		DebugPrint(data);
+		DEBUG_PRINT("-> ");
+		DEBUG_PRINTLN_DUMP(data);
 	} while (strcmp(response, data) != 0);
 
 	return true;
@@ -121,8 +133,8 @@ bool WioLTE::WaitForResponse(const char* response, char* parameter, int paramete
 	int responseLength = strlen(response);
 	do {
 		if (!ReadLine(data, sizeof(data), timeout)) return false;
-		SerialUSB.print("-> ");
-		DebugPrint(data);
+		DEBUG_PRINT("-> ");
+		DEBUG_PRINTLN_DUMP(data);
 	} while (strncmp(response, data, responseLength) != 0);
 
 	if (strlen(data) - responseLength + 1 > parameterSize) return false;
@@ -147,10 +159,10 @@ bool WioLTE::Reset()
 	Stopwatch sw;
 	sw.Start();
 	while (!WaitForResponse("RDY", 100)) {
-		SerialUSB.print(".");
+		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
-	SerialUSB.println("");
+	DEBUG_PRINTLN("");
 
 	return true;
 }
@@ -165,18 +177,18 @@ bool WioLTE::TurnOn()
 	Stopwatch sw;
 	sw.Start();
 	while (IsBusy()) {
-		SerialUSB.print(".");
+		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 5000) return false;
 		delay(100);
 	}
-	SerialUSB.println("");
+	DEBUG_PRINTLN("");
 
 	sw.Start();
 	while (!WaitForResponse("RDY", 100)) {
-		SerialUSB.print(".");
+		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
-	SerialUSB.println("");
+	DEBUG_PRINTLN("");
 
 	return true;
 }
@@ -239,20 +251,20 @@ bool WioLTE::TurnOnOrReset()
 	Stopwatch sw;
 	sw.Start();
 	while (!WriteCommandAndWaitForResponse("AT", "OK", 500)) {
-		SerialUSB.print(".");
+		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
-	SerialUSB.println("");
+	DEBUG_PRINTLN("");
 
 	if (!WriteCommandAndWaitForResponse("ATE0", "OK", 500)) return false;
 	if (!WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"usbat\"", "OK", 500)) return false;
 
 	sw.Start();
 	while (!WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000)) {	// TODO
-		SerialUSB.print(".");
+		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
-	SerialUSB.println("");
+	DEBUG_PRINTLN("");
 
 	return true;
 }
