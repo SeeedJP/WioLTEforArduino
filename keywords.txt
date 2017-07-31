@@ -4,7 +4,11 @@ Init				KEYWORD2
 PowerSupplyLTE		KEYWORD2
 PowerSupplyGNSS		KEYWORD2
 PowerSupplyGrove	KEYWORD2
-IsBusy	KEYWORD2	KEYWORD2
-TurnOn	KEYWORD2	KEYWORD2
+IsBusy				KEYWORD2
+TurnOn				KEYWORD2
 TurnOnOrReset		KEYWORD2
 SendSMS				KEYWORD2
+Activate			KEYWORD2
+SocketOpen			KEYWORD2
+SocketSend			KEYWORD2
+SocketClose			KEYWORD2
