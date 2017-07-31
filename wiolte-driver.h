@@ -47,6 +47,10 @@ public:
 
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
 
+	int SocketOpen(const char* host, int port);
+	bool SocketSend(int connectId, const char* data);
+	bool SocketClose(int connectId);
+
 public:
 	class Stopwatch
 	{

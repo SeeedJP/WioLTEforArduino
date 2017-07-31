@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "wiolte-driver.h"
 
-//#define DEBUG
+#define DEBUG
 
 #define MODULE_RESPONSE_MAX_SIZE	(100)
 
@@ -309,6 +309,52 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (!WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000)) return false;
 
 	if (!WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000)) return false;
+
+	return true;
+}
+
+int WioLTE::SocketOpen(const char* host, int port)
+{
+	if (host == NULL || host[0] == '\0') return -1;
+	if (port < 0 || 65535 < port) return -1;
+
+	char* str = (char*)alloca(21 + strlen(host) + 2 + 5 + 1);
+	sprintf(str, "AT+QIOPEN=1,0,\"TCP\",\"%s\",%d", host, port);	// TODO
+	if (!WriteCommandAndWaitForResponse(str, "OK", 150000)) return -1;
+	if (!WaitForResponse("+QIOPEN: 0,0", 150000)) return -1;		// TODO
+
+	return 0;
+}
+
+bool WioLTE::SocketSend(int connectId, const char* data)
+{
+	if (connectId > 11) return false;
+	int dataLength = strlen(data);
+	if (dataLength > 1460) return false;
+
+	char* str = (char*)alloca(10 + 2 + 1 + 4 + 1);
+	sprintf(str, "AT+QISEND=%d,%d", connectId, dataLength);
+	WriteCommand(str);
+	char recv[MODULE_RESPONSE_MAX_SIZE];
+	if (!ReadLine(recv, sizeof(recv), 2000)) return false;						// TODO
+	if (strcmp(recv, "") != 0) return false;
+	while (!_Serial->available());
+	if (_Serial->read() != '>') return false;
+	while (!_Serial->available());
+	if (_Serial->read() != ' ') return false;
+
+	if (!WriteCommandAndWaitForResponse(data, "SEND OK", 5000)) return false;	// TODO
+
+	return true;
+}
+
+bool WioLTE::SocketClose(int connectId)
+{
+	if (connectId > 11) return false;
+
+	char* str = (char*)alloca(11 + 2 + 1);
+	sprintf(str, "AT+QICLOSE=%d", connectId);
+	if (!WriteCommandAndWaitForResponse(str, "OK", 30000)) return false;		// TODO
 
 	return true;
 }
