@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "wiolte-driver.h"
 
-#define DEBUG
+//#define DEBUG
 
 #define MODULE_RESPONSE_MAX_SIZE	(100)
 
