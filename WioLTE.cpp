@@ -360,6 +360,35 @@ bool WioLTE::SocketSend(int connectId, const char* data)
 	return true;
 }
 
+int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
+{
+	if (connectId > 11) return false;
+
+	char* str = (char*)alloca(15 + 2 + 1);
+	sprintf(str, "+QIURC: \"recv\",%d", connectId);
+	if (!WaitForResponse(str, 30000)) return -1;						// TODO
+
+	char* str2 = (char*)alloca(8 + 2 + 1);
+	sprintf(str2, "AT+QIRD=%d", connectId);
+	WriteCommand(str2);
+	char parameter[MODULE_RESPONSE_MAX_SIZE];
+	if (!WaitForResponse("+QIRD: ", parameter, sizeof(parameter), 500)) return false;
+	int dataLength = atoi(parameter);
+	if (dataLength > dataSize) return -1;
+	if (_Serial->readBytes(data, dataLength) != dataLength) return -1;
+	if (!WaitForResponse("OK", 500)) return -1;							// TODO
+
+	return dataLength;
+}
+
+int WioLTE::SocketReceive(int connectId, char* data, int dataSize)
+{
+	int dataLength = SocketReceive(connectId, (byte*)data, dataSize - 1);
+	if (dataLength >= 0) data[dataLength] = '\0';
+
+	return dataLength;
+}
+
 bool WioLTE::SocketClose(int connectId)
 {
 	if (connectId > 11) return false;

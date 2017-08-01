@@ -58,6 +58,8 @@ public:
 
 	int SocketOpen(const char* host, int port, SocketType type);
 	bool SocketSend(int connectId, const char* data);
+	int SocketReceive(int connectId, byte* data, int dataSize);
+	int SocketReceive(int connectId, char* data, int dataSize);
 	bool SocketClose(int connectId);
 
 public:

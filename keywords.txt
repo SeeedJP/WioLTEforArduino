@@ -11,6 +11,7 @@ SendSMS				KEYWORD2
 Activate			KEYWORD2
 SocketOpen			KEYWORD2
 SocketSend			KEYWORD2
+SocketReceive		KEYWORD2
 SocketClose			KEYWORD2
 
 WIOLTE_TCP			LITERAL1
