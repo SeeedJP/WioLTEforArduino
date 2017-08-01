@@ -313,13 +313,25 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	return true;
 }
 
-int WioLTE::SocketOpen(const char* host, int port)
+int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 {
 	if (host == NULL || host[0] == '\0') return -1;
 	if (port < 0 || 65535 < port) return -1;
 
-	char* str = (char*)alloca(21 + strlen(host) + 2 + 5 + 1);
-	sprintf(str, "AT+QIOPEN=1,0,\"TCP\",\"%s\",%d", host, port);	// TODO
+	const char* typeStr;
+	switch (type) {
+	case SOCKET_TCP:
+		typeStr = "TCP";
+		break;
+	case SOCKET_UDP:
+		typeStr = "UDP";
+		break;
+	default:
+		return -1;
+	}
+
+	char* str = (char*)alloca(15 + 3 + 3 + strlen(host) + 2 + 5 + 1);
+	sprintf(str, "AT+QIOPEN=1,0,\"%s\",\"%s\",%d", typeStr, host, port);	// TODO
 	if (!WriteCommandAndWaitForResponse(str, "OK", 150000)) return -1;
 	if (!WaitForResponse("+QIOPEN: 0,0", 150000)) return -1;		// TODO
 

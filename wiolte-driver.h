@@ -2,6 +2,9 @@
 
 #include <Arduino.h>
 
+#define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
+#define WIOLTE_UDP	(WioLTE::SOCKET_UDP)
+
 class WioLTE
 {
 private:
@@ -23,6 +26,12 @@ private:
 private:
 	void DiscardRead();
 	bool ReadLine(char* data, int dataSize, long timeout);
+
+public:
+	enum SocketType {
+		SOCKET_TCP,
+		SOCKET_UDP,
+	};
 
 public:
 	void Write(const char* str);
@@ -47,7 +56,7 @@ public:
 
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
 
-	int SocketOpen(const char* host, int port);
+	int SocketOpen(const char* host, int port, SocketType type);
 	bool SocketSend(int connectId, const char* data);
 	bool SocketClose(int connectId);
 
