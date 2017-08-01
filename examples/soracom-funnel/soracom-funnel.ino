@@ -29,7 +29,7 @@ void setup() {
   }
 
   SerialUSB.println("### Open.");
-  int connectId = wio.SocketOpen("funnel.soracom.io", 23080);
+  int connectId = wio.SocketOpen("funnel.soracom.io", 23080, WIOLTE_UDP);
   if (connectId < 0) {
     SerialUSB.println("### ERROR! ###");
     return;
@@ -41,6 +41,13 @@ void setup() {
     return;
   }
   
+  SerialUSB.println("### Receive.");
+  char data[100];
+  if (wio.SocketReceive(connectId, data, sizeof (data)) < 0) {
+    SerialUSB.println("### ERROR! ###");
+    return;
+  }
+
   SerialUSB.println("### Close.");
   if (!wio.SocketClose(connectId)) {
     SerialUSB.println("### ERROR! ###");
