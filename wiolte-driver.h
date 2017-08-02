@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <Seeed_ws2812.h>
 
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
 #define WIOLTE_UDP	(WioLTE::SOCKET_UDP)
@@ -8,20 +9,21 @@
 class WioLTE
 {
 private:
-	static const int MODULE_PWR_PIN = 18; // PB5
-	static const int ANT_PWR_PIN = 28; // PB12
-	static const int ENABLE_VCCB_PIN = 26; // PB10    
+	static const int MODULE_PWR_PIN = 18;		// PB2
+	static const int ANT_PWR_PIN = 28;			// PB12
+	static const int ENABLE_VCCB_PIN = 26;		// PB10    
 
-	static const int PWR_KEY_PIN = 36; // PC4 
-	static const int WAKEUP_IN_PIN = 32; // PC0
-	static const int AP_READY_PIN = 33; // PC1
-	static const int WAKEUP_DISABLE_PIN = 34; // PC2
-	static const int RESET_MODULE_PIN = 35; // PC3
-	static const int STATUS_PIN = 31; // PB15
-	static const int RGB_LED_PIN = 17; // PB1
+	static const int PWR_KEY_PIN = 36;			// PC4 
+	static const int WAKEUP_IN_PIN = 32;		// PC0
+	static const int AP_READY_PIN = 33;			// PC1
+	static const int WAKEUP_DISABLE_PIN = 34;	// PC2
+	static const int RESET_MODULE_PIN = 35;		// PC3
+	static const int STATUS_PIN = 31;			// PB15
+	static const int RGB_LED_PIN = 17;			// PB1
 
 private:
 	HardwareSerial* _Serial;
+	WS2812 _Led;
 
 private:
 	void DiscardRead();
@@ -46,6 +48,7 @@ public:
 public:
 	WioLTE();
 	void Init();
+	void LedSetRGB(byte red, byte green, byte blue);
 	void PowerSupplyLTE(bool on);
 	void PowerSupplyGNSS(bool on);
 	void PowerSupplyGrove(bool on);

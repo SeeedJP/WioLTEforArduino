@@ -193,7 +193,7 @@ bool WioLTE::TurnOn()
 	return true;
 }
 
-WioLTE::WioLTE() : _Serial(&Serial1)
+WioLTE::WioLTE() : _Serial(&Serial1), _Led(1, RGB_LED_PIN)
 {
 }
 
@@ -217,6 +217,13 @@ void WioLTE::Init()
 	//PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
   
 	_Serial->begin(115200);
+	_Led.begin();
+}
+
+void WioLTE::LedSetRGB(byte red, byte green, byte blue)
+{
+	_Led.WS2812SetRGB(0, red, green, blue);
+	_Led.WS2812Send();
 }
 
 void WioLTE::PowerSupplyLTE(bool on)
