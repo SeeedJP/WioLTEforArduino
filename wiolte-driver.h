@@ -63,6 +63,8 @@ private:
 
 private:
 	void DiscardRead();
+	bool WaitForAvailable(Stopwatch* sw, long timeout);
+	const char* ReadResponse();
 	bool ReadLine(char* data, int dataSize, long timeout);
 
 public:
@@ -74,8 +76,6 @@ public:
 public:
 	void Write(const char* str);
 	void WriteCommand(const char* command);
-	bool WaitForAvailable(Stopwatch* sw, long timeout);
-	const char* ReadResponse();
 	const char* WaitForResponse(const char* waitResponse, long timeout);
 	const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 

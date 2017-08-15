@@ -67,6 +67,38 @@ void WioLTE::DiscardRead()
 	while (_Serial->available()) _Serial->read();
 }
 
+bool WioLTE::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout)
+{
+	while (!_Serial->available()) {
+		if (sw->ElapsedMilliseconds() >= timeout) return false;
+	}
+	return true;
+}
+
+const char* WioLTE::ReadResponse()
+{
+	_LastResponse.clear();
+
+	while (true) {
+		// Wait for available.
+		WioLTE::Stopwatch sw;
+		sw.Start();
+		if (!WaitForAvailable(&sw, 10)) return NULL;
+
+		// Read byte.
+		int b = _Serial->read();
+		_LastResponse.push_back(b);
+
+		// Is received delimiter?
+		int responseSize = _LastResponse.size();
+		if (responseSize >= 2 && _LastResponse[responseSize - 2] == CHAR_CR && _LastResponse[responseSize - 1] == CHAR_LF) {
+			_LastResponse.pop_back();
+			*_LastResponse.rbegin() = '\0';
+			return &_LastResponse[0];
+		}
+	}
+}
+
 bool WioLTE::ReadLine(char* data, int dataSize, long timeout)
 {
 	int dataIndex = 0;
@@ -116,38 +148,6 @@ void WioLTE::WriteCommand(const char* command)
 
 	_Serial->write(command);
 	_Serial->write('\r');
-}
-
-bool WioLTE::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout)
-{
-	while (!_Serial->available()) {
-		if (sw->ElapsedMilliseconds() >= timeout) return false;
-	}
-	return true;
-}
-
-const char* WioLTE::ReadResponse()
-{
-	_LastResponse.clear();
-
-	while (true) {
-		// Wait for available.
-		WioLTE::Stopwatch sw;
-		sw.Start();
-		if (!WaitForAvailable(&sw, 10)) return NULL;
-
-		// Read byte.
-		int b = _Serial->read();
-		_LastResponse.push_back(b);
-
-		// Is received delimiter?
-		int responseSize = _LastResponse.size();
-		if (responseSize >= 2 && _LastResponse[responseSize - 2] == CHAR_CR && _LastResponse[responseSize - 1] == CHAR_LF) {
-			_LastResponse.pop_back();
-			*_LastResponse.rbegin() = '\0';
-			return &_LastResponse[0];
-		}
-	}
 }
 
 const char* WioLTE::WaitForResponse(const char* waitResponse, long timeout)
