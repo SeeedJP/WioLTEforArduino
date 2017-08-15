@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "wiolte-driver.h"
 
-//#define DEBUG
+#define DEBUG
 
 #define MODULE_RESPONSE_MAX_SIZE	(100)
 
@@ -15,6 +15,9 @@
 #define DEBUG_PRINTLN(str)
 #define DEBUG_PRINTLN_DUMP(data)
 #endif
+
+#define CHAR_CR (0x0d)
+#define CHAR_LF (0x0a)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -115,16 +118,57 @@ void WioLTE::WriteCommand(const char* command)
 	_Serial->write('\r');
 }
 
+bool WioLTE::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout)
+{
+	while (!_Serial->available()) {
+		if (sw->ElapsedMilliseconds() >= timeout) return false;
+	}
+	return true;
+}
+
+const char* WioLTE::ReadResponse()
+{
+	_LastResponse.clear();
+
+	while (true) {
+		// Wait for available.
+		WioLTE::Stopwatch sw;
+		sw.Start();
+		if (!WaitForAvailable(&sw, 10)) return NULL;
+
+		// Read byte.
+		int b = _Serial->read();
+		_LastResponse.push_back(b);
+
+		// Is received delimiter?
+		int responseSize = _LastResponse.size();
+		if (responseSize >= 2 && _LastResponse[responseSize - 2] == CHAR_CR && _LastResponse[responseSize - 1] == CHAR_LF) {
+			_LastResponse.pop_back();
+			*_LastResponse.rbegin() = '\0';
+			return &_LastResponse[0];
+		}
+	}
+}
+
+const char* WioLTE::WaitForResponse(long timeout, const char* waitResponse)
+{
+	WioLTE::Stopwatch sw;
+	sw.Start();
+
+	while (true) {
+		if (!WaitForAvailable(&sw, timeout)) return NULL;
+
+		const char* response = ReadResponse();
+		DEBUG_PRINT("-> ");
+		DEBUG_PRINTLN_DUMP(response);
+
+		if (strcmp(response, waitResponse) == 0) return response;
+	}
+}
+
 bool WioLTE::WaitForResponse(const char* response, long timeout)
 {
-	char data[MODULE_RESPONSE_MAX_SIZE];
-	do {
-		if (!ReadLine(data, sizeof(data), timeout)) return false;
-		DEBUG_PRINT("-> ");
-		DEBUG_PRINTLN_DUMP(data);
-	} while (strcmp(response, data) != 0);
-
-	return true;
+	return WaitForResponse(timeout, response);
 }
 
 bool WioLTE::WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout)
