@@ -150,7 +150,7 @@ const char* WioLTE::ReadResponse()
 	}
 }
 
-const char* WioLTE::WaitForResponse(long timeout, const char* waitResponse)
+const char* WioLTE::WaitForResponse(const char* waitResponse, long timeout)
 {
 	WioLTE::Stopwatch sw;
 	sw.Start();
@@ -166,9 +166,10 @@ const char* WioLTE::WaitForResponse(long timeout, const char* waitResponse)
 	}
 }
 
-bool WioLTE::WaitForResponse(const char* response, long timeout)
+const char* WioLTE::WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout)
 {
-	return WaitForResponse(timeout, response);
+	WriteCommand(command);
+	return WaitForResponse(response, timeout);
 }
 
 bool WioLTE::WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout)
@@ -187,12 +188,6 @@ bool WioLTE::WaitForResponse(const char* response, char* parameter, int paramete
 	return true;
 }
 
-bool WioLTE::WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout)
-{
-	WriteCommand(command);
-	return WaitForResponse(response, timeout);
-}
-
 bool WioLTE::Reset()
 {
 	digitalWrite(RESET_MODULE_PIN, LOW);
@@ -202,7 +197,7 @@ bool WioLTE::Reset()
 
 	Stopwatch sw;
 	sw.Start();
-	while (!WaitForResponse("RDY", 100)) {
+	while (WaitForResponse("RDY", 100) == NULL) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
@@ -228,7 +223,7 @@ bool WioLTE::TurnOn()
 	DEBUG_PRINTLN("");
 
 	sw.Start();
-	while (!WaitForResponse("RDY", 100)) {
+	while (WaitForResponse("RDY", 100) == NULL) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
@@ -301,17 +296,17 @@ bool WioLTE::TurnOnOrReset()
 
 	Stopwatch sw;
 	sw.Start();
-	while (!WriteCommandAndWaitForResponse("AT", "OK", 500)) {
+	while (WriteCommandAndWaitForResponse("AT", "OK", 500) == NULL) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
 	DEBUG_PRINTLN("");
 
-	if (!WriteCommandAndWaitForResponse("ATE0", "OK", 500)) return false;
-	if (!WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"usbat\"", "OK", 500)) return false;
+	if (WriteCommandAndWaitForResponse("ATE0", "OK", 500) == NULL) return false;
+	if (WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"usbat\"", "OK", 500) == NULL) return false;
 
 	sw.Start();
-	while (!WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000)) {	// TODO
+	while (WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000) == NULL) {	// TODO
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
@@ -322,14 +317,14 @@ bool WioLTE::TurnOnOrReset()
 
 bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
-	if (!WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500)) return false;
+	if (WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500) == NULL) return false;
 
 	char* str = (char*)alloca(9 + strlen(dialNumber) + 1 + 1);
 	sprintf(str, "AT+CMGS=\"%s\"", dialNumber);
-	if (!WriteCommandAndWaitForResponse(str, "", 500)) return false;
+	if (WriteCommandAndWaitForResponse(str, "", 500) == NULL) return false;
 	Write(message);
 	Write("\x1a");
-	if (!WaitForResponse("OK", 120000)) return false;
+	if (WaitForResponse("OK", 120000) == NULL) return false;
 
 	return true;
 }
@@ -341,25 +336,25 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	WriteCommand("AT+CREG?");
 	if (!WaitForResponse("+CREG: ", parameter, sizeof(parameter), 500)) return false;
 	if (strcmp(parameter, "0,1") != 0) return false;	// TODO
-	if (!WaitForResponse("OK", 500)) return false;
+	if (WaitForResponse("OK", 500) == NULL) return false;
 
 	WriteCommand("AT+CGREG?");
 	if (!WaitForResponse("+CGREG: ", parameter, sizeof(parameter), 500)) return false;
 	if (strcmp(parameter, "0,1") != 0) return false;	// TODO
-	if (!WaitForResponse("OK", 500)) return false;
+	if (WaitForResponse("OK", 500) == NULL) return false;
 
 	WriteCommand("AT+CEREG?");
 	if (!WaitForResponse("+CEREG: ", parameter, sizeof(parameter), 500)) return false;
 	if (strcmp(parameter, "0,1") != 0) return false;	// TODO
-	if (!WaitForResponse("OK", 500)) return false;
+	if (WaitForResponse("OK", 500) == NULL) return false;
 
 	char* str = (char*)alloca(15 + strlen(accessPointName) + 3 + strlen(userName) + 3 + strlen(password) + 3 + 1);
 	sprintf(str, "AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password);
-	if (!WriteCommandAndWaitForResponse(str, "OK", 500)) return false;
+	if (WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return false;
 
-	if (!WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000)) return false;
+	if (WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000) == NULL) return false;
 
-	if (!WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000)) return false;
+	if (WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000) == NULL) return false;
 
 	return true;
 }
@@ -383,8 +378,8 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 
 	char* str = (char*)alloca(15 + 3 + 3 + strlen(host) + 2 + 5 + 1);
 	sprintf(str, "AT+QIOPEN=1,0,\"%s\",\"%s\",%d", typeStr, host, port);	// TODO
-	if (!WriteCommandAndWaitForResponse(str, "OK", 150000)) return -1;
-	if (!WaitForResponse("+QIOPEN: 0,0", 150000)) return -1;		// TODO
+	if (WriteCommandAndWaitForResponse(str, "OK", 150000) == NULL) return -1;
+	if (WaitForResponse("+QIOPEN: 0,0", 150000) == NULL) return -1;		// TODO
 
 	return 0;
 }
@@ -406,7 +401,7 @@ bool WioLTE::SocketSend(int connectId, const char* data)
 	while (!_Serial->available());
 	if (_Serial->read() != ' ') return false;
 
-	if (!WriteCommandAndWaitForResponse(data, "SEND OK", 5000)) return false;	// TODO
+	if (WriteCommandAndWaitForResponse(data, "SEND OK", 5000) == NULL) return false;	// TODO
 
 	return true;
 }
@@ -417,7 +412,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 
 	char* str = (char*)alloca(15 + 2 + 1);
 	sprintf(str, "+QIURC: \"recv\",%d", connectId);
-	if (!WaitForResponse(str, 30000)) return -1;						// TODO
+	if (WaitForResponse(str, 30000) == NULL) return -1;						// TODO
 
 	char* str2 = (char*)alloca(8 + 2 + 1);
 	sprintf(str2, "AT+QIRD=%d", connectId);
@@ -427,7 +422,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 	int dataLength = atoi(parameter);
 	if (dataLength > dataSize) return -1;
 	if (_Serial->readBytes(data, dataLength) != dataLength) return -1;
-	if (!WaitForResponse("OK", 500)) return -1;							// TODO
+	if (WaitForResponse("OK", 500) == NULL) return -1;							// TODO
 
 	return dataLength;
 }
@@ -446,7 +441,7 @@ bool WioLTE::SocketClose(int connectId)
 
 	char* str = (char*)alloca(11 + 2 + 1);
 	sprintf(str, "AT+QICLOSE=%d", connectId);
-	if (!WriteCommandAndWaitForResponse(str, "OK", 30000)) return false;		// TODO
+	if (WriteCommandAndWaitForResponse(str, "OK", 30000) == NULL) return false;		// TODO
 
 	return true;
 }

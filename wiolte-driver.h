@@ -76,11 +76,10 @@ public:
 	void WriteCommand(const char* command);
 	bool WaitForAvailable(Stopwatch* sw, long timeout);
 	const char* ReadResponse();
-	const char* WaitForResponse(long timeout, const char* waitResponse);
+	const char* WaitForResponse(const char* waitResponse, long timeout);
+	const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
-	bool WaitForResponse(const char* response, long timeout);	// TODO Remove
 	bool WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout);
-	bool WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
 	bool Reset();
 	bool TurnOn();
