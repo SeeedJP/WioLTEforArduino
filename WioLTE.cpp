@@ -144,7 +144,7 @@ bool WioLTE::TurnOnOrReset()
 	DEBUG_PRINTLN("");
 
 	if (_Module.WriteCommandAndWaitForResponse("ATE0", "OK", 500) == NULL) return false;
-	if (_Module.WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"usbat\"", "OK", 500) == NULL) return false;
+	if (_Module.WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "OK", 500) == NULL) return false;
 
 	sw.Start();
 	while (_Module.WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000) == NULL) {	// TODO
