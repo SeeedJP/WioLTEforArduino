@@ -60,19 +60,22 @@ private:
 		void SerialWrite(byte data) { Serial1.write(data); }
 		void SerialWrite(const byte* data, int dataSize) { Serial1.write(data, dataSize); }
 
-	private:
-		std::vector<char> _LastResponse;
+	public:
+		enum WaitForResponseFlag {
+			WFR_WITHOUT_DELIM	= 0x01,
+			WFR_START_WITH		= 0x02,
+		};
 
 	public:
 		ModuleSerial();
 
 	private:
+		std::vector<char> _LastResponse;
+
 		void DiscardRead();
 		bool WaitForAvailable(Stopwatch* sw, long timeout) const;
 		int Read(byte* data, int dataSize);
 		const char* ReadResponse(const char* match = NULL);
-	public:
-		bool ReadLine(char* data, int dataSize, long timeout);									// TODO
 
 	public:
 		void Init();
@@ -81,9 +84,8 @@ private:
 		int Read(byte* data, int dataSize, long timeout);
 
 		void WriteCommand(const char* command);
-		const char* WaitForResponse(const char* waitResponse, long timeout, bool withoutDelim = false);
+		const char* WaitForResponse(const char* waitResponse, long timeout, WaitForResponseFlag flag = (WaitForResponseFlag)0);
 		const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
-		bool WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout);	// TODO
 
 	};
 
