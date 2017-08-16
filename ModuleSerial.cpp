@@ -68,8 +68,11 @@ bool WioLTE::ModuleSerial::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout)
 	return true;
 }
 
-const char* WioLTE::ModuleSerial::ReadResponse()
+const char* WioLTE::ModuleSerial::ReadResponse(const char* match)
 {
+	int matchSize;
+	if (match != NULL) matchSize = strlen(match);
+
 	_LastResponse.clear();
 
 	while (true) {
@@ -81,12 +84,18 @@ const char* WioLTE::ModuleSerial::ReadResponse()
 		// Read byte.
 		byte b = SerialRead();
 		_LastResponse.push_back(b);
+		int responseSize = _LastResponse.size();
 
 		// Is received delimiter?
-		int responseSize = _LastResponse.size();
 		if (responseSize >= 2 && _LastResponse[responseSize - 2] == CHAR_CR && _LastResponse[responseSize - 1] == CHAR_LF) {
 			_LastResponse.pop_back();
 			*_LastResponse.rbegin() = '\0';
+			return &_LastResponse[0];
+		}
+
+		// Is match string?
+		if (match != NULL && responseSize == matchSize && memcmp(&_LastResponse[0], match, matchSize) == 0) {
+			_LastResponse.push_back('\0');
 			return &_LastResponse[0];
 		}
 	}
@@ -131,6 +140,13 @@ void WioLTE::ModuleSerial::Init()
 	SerialInit();
 }
 
+void WioLTE::ModuleSerial::Write(const byte* data, int dataSize)
+{
+	DEBUG_PRINTLN("<- (binary)");
+
+	SerialWrite(data, dataSize);
+}
+
 void WioLTE::ModuleSerial::Write(const char* str)
 {
 	DEBUG_PRINT("<- ");
@@ -138,6 +154,7 @@ void WioLTE::ModuleSerial::Write(const char* str)
 
 	SerialWrite((const byte*)str, strlen(str));
 }
+
 
 void WioLTE::ModuleSerial::WriteCommand(const char* command)
 {
@@ -148,7 +165,7 @@ void WioLTE::ModuleSerial::WriteCommand(const char* command)
 	SerialWrite(CHAR_CR);
 }
 
-const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long timeout)
+const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long timeout, bool withoutDelim)
 {
 	WioLTE::Stopwatch sw;
 	sw.Start();
@@ -156,7 +173,11 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 	while (true) {
 		if (!WaitForAvailable(&sw, timeout)) return NULL;
 
-		const char* response = ReadResponse();
+		const char* response;
+		if (!withoutDelim)
+			response = ReadResponse();
+		else
+			response = ReadResponse(waitResponse);
 
 		if (response[0] == '\0') continue;
 

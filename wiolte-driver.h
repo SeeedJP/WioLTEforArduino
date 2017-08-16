@@ -69,18 +69,17 @@ private:
 	private:
 		void DiscardRead();
 		bool WaitForAvailable(Stopwatch* sw, long timeout) const;
-		const char* ReadResponse();
+		const char* ReadResponse(const char* match = NULL);
 	public:
-		bool ReadLine(char* data, int dataSize, long timeout);
-		int Available() { return Serial1.available(); }	// TODO
-		int Read() { return Serial1.read(); }				// TODO
+		bool ReadLine(char* data, int dataSize, long timeout);									// TODO
 		byte ReadBytes(byte* buffer, int length) { return Serial1.readBytes(buffer, length); }	// TODO
 
 	public:
 		void Init();
+		void Write(const byte* data, int dataSize);
 		void Write(const char* str);
 		void WriteCommand(const char* command);
-		const char* WaitForResponse(const char* waitResponse, long timeout);
+		const char* WaitForResponse(const char* waitResponse, long timeout, bool withoutDelim = false);
 		const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 		bool WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout);	// TODO
 

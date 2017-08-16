@@ -236,15 +236,9 @@ bool WioLTE::SocketSend(int connectId, const char* data)
 	char* str = (char*)alloca(10 + 2 + 1 + 4 + 1);
 	sprintf(str, "AT+QISEND=%d,%d", connectId, dataLength);
 	_Module.WriteCommand(str);
-	char recv[MODULE_RESPONSE_MAX_SIZE];
-	if (!_Module.ReadLine(recv, sizeof(recv), 2000)) return false;						// TODO
-	if (strcmp(recv, "") != 0) return false;
-	while (!_Module.Available());
-	if (_Module.Read() != '>') return false;
-	while (!_Module.Available());
-	if (_Module.Read() != ' ') return false;
-
-	if (_Module.WriteCommandAndWaitForResponse(data, "SEND OK", 5000) == NULL) return false;	// TODO
+	if (_Module.WaitForResponse("> ", 2000, true) == NULL) return false;	// TODO
+	_Module.Write(data);
+	if (_Module.WaitForResponse("SEND OK", 5000) == NULL) return false;	// TODO
 
 	return true;
 }
