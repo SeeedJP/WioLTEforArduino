@@ -9,6 +9,9 @@
 
 class WioLTE
 {
+	/////////////////////////////////////////////////////////////////////
+	// Stopwatch
+
 private:
 	class Stopwatch
 	{
@@ -41,7 +44,44 @@ private:
 				return _EndTime - _BeginTime;
 			}
 		}
+
 	};
+
+	/////////////////////////////////////////////////////////////////////
+	// ModuleSerial
+
+private:
+	class ModuleSerial
+	{
+	private:
+		HardwareSerial* _Serial;
+		std::vector<char> _LastResponse;
+
+	public:
+		ModuleSerial();
+
+	private:
+		void DiscardRead();
+		bool WaitForAvailable(Stopwatch* sw, long timeout);
+		const char* ReadResponse();
+	public:
+		bool ReadLine(char* data, int dataSize, long timeout);
+		int Available() { return _Serial->available(); }
+		int Read() { return _Serial->read(); }
+		byte ReadBytes(byte* buffer, int length) { return _Serial->readBytes(buffer, length); }
+
+	public:
+		void Init();
+		void Write(const char* str);
+		void WriteCommand(const char* command);
+		const char* WaitForResponse(const char* waitResponse, long timeout);
+		const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
+		bool WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout);	// TODO
+
+	};
+
+	/////////////////////////////////////////////////////////////////////
+	// WioLTE
 
 private:
 	static const int MODULE_PWR_PIN = 18;		// PB2
@@ -57,22 +97,8 @@ private:
 	static const int RGB_LED_PIN = 17;			// PB1
 
 private:
-	HardwareSerial* _Serial;
-	std::vector<char> _LastResponse;
+	ModuleSerial _Module;
 	WS2812 _Led;
-
-private:
-	void DiscardRead();
-	bool WaitForAvailable(Stopwatch* sw, long timeout);
-	const char* ReadResponse();
-	bool ReadLine(char* data, int dataSize, long timeout);
-
-protected:
-	void Write(const char* str);
-	void WriteCommand(const char* command);
-	const char* WaitForResponse(const char* waitResponse, long timeout);
-	const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
-	bool WaitForResponse(const char* response, char* parameter, int parameterSize, long timeout);	// TODO
 
 public:
 	enum SocketType {
