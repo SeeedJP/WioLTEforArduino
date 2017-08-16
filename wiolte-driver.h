@@ -35,7 +35,7 @@ private:
 			_EndTime = millis();
 		}
 
-		unsigned long ElapsedMilliseconds()
+		unsigned long ElapsedMilliseconds() const
 		{
 			if (_EndTime == 0) {
 				return millis() - _BeginTime;
@@ -54,7 +54,13 @@ private:
 	class ModuleSerial
 	{
 	private:
-		HardwareSerial* _Serial;
+		void SerialInit() { Serial1.begin(115200); }
+		bool SerialAvailable() const { return Serial1.available() >= 1 ? true : false; }
+		byte SerialRead() { return Serial1.read(); }
+		void SerialWrite(byte data) { Serial1.write(data); }
+		void SerialWrite(const byte* data, int dataSize) { Serial1.write(data, dataSize); }
+
+	private:
 		std::vector<char> _LastResponse;
 
 	public:
@@ -62,13 +68,13 @@ private:
 
 	private:
 		void DiscardRead();
-		bool WaitForAvailable(Stopwatch* sw, long timeout);
+		bool WaitForAvailable(Stopwatch* sw, long timeout) const;
 		const char* ReadResponse();
 	public:
 		bool ReadLine(char* data, int dataSize, long timeout);
-		int Available() { return _Serial->available(); }
-		int Read() { return _Serial->read(); }
-		byte ReadBytes(byte* buffer, int length) { return _Serial->readBytes(buffer, length); }
+		int Available() { return Serial1.available(); }	// TODO
+		int Read() { return Serial1.read(); }				// TODO
+		byte ReadBytes(byte* buffer, int length) { return Serial1.readBytes(buffer, length); }	// TODO
 
 	public:
 		void Init();

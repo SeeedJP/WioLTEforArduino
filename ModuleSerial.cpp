@@ -51,18 +51,18 @@ static void DebugPrintlnDump(const char* data)
 ////////////////////////////////////////////////////////////////////////////////////////
 // ModuleSerial
 
-WioLTE::ModuleSerial::ModuleSerial() : _Serial(&Serial1)
+WioLTE::ModuleSerial::ModuleSerial()
 {
 }
 
 void WioLTE::ModuleSerial::DiscardRead()
 {
-	while (_Serial->available()) _Serial->read();
+	while (SerialAvailable()) SerialRead();
 }
 
-bool WioLTE::ModuleSerial::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout)
+bool WioLTE::ModuleSerial::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout) const
 {
-	while (!_Serial->available()) {
+	while (!SerialAvailable()) {
 		if (sw->ElapsedMilliseconds() >= timeout) return false;
 	}
 	return true;
@@ -79,7 +79,7 @@ const char* WioLTE::ModuleSerial::ReadResponse()
 		if (!WaitForAvailable(&sw, 10)) return NULL;
 
 		// Read byte.
-		int b = _Serial->read();
+		byte b = SerialRead();
 		_LastResponse.push_back(b);
 
 		// Is received delimiter?
@@ -99,13 +99,13 @@ bool WioLTE::ModuleSerial::ReadLine(char* data, int dataSize, long timeout)
 	Stopwatch sw;
 	while (dataIndex < dataSize - 1) {
 		sw.Start();
-		while (!_Serial->available()) {
+		while (!SerialAvailable()) {
 			if (sw.ElapsedMilliseconds() > timeout) {
 				data[dataIndex] = '\0';
 				return false; // Timeout.
 			}
 		}
-		int c = _Serial->read();
+		int c = SerialRead();
 		if (c < 0) {
 			data[dataIndex] = '\0';
 			return false; // No data.
@@ -128,24 +128,24 @@ bool WioLTE::ModuleSerial::ReadLine(char* data, int dataSize, long timeout)
 
 void WioLTE::ModuleSerial::Init()
 {
-	_Serial->begin(115200);
+	SerialInit();
 }
 
 void WioLTE::ModuleSerial::Write(const char* str)
 {
 	DEBUG_PRINT("<- ");
-	DEBUG_PRINTLN_DUMP(str);
+	DEBUG_PRINTLN(str);
 
-	_Serial->write(str);
+	SerialWrite((const byte*)str, strlen(str));
 }
 
 void WioLTE::ModuleSerial::WriteCommand(const char* command)
 {
 	DEBUG_PRINT("<- ");
-	DEBUG_PRINTLN_DUMP(command);
+	DEBUG_PRINTLN(command);
 
-	_Serial->write(command);
-	_Serial->write('\r');
+	SerialWrite((const byte*)command, strlen(command));
+	SerialWrite(CHAR_CR);
 }
 
 const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long timeout)
@@ -157,10 +157,16 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 		if (!WaitForAvailable(&sw, timeout)) return NULL;
 
 		const char* response = ReadResponse();
-		DEBUG_PRINT("-> ");
-		DEBUG_PRINTLN_DUMP(response);
 
-		if (strcmp(response, waitResponse) == 0) return response;
+		if (strcmp(response, waitResponse) == 0) {
+			DEBUG_PRINT("-> ");
+			DEBUG_PRINTLN(response);
+			return response;
+		}
+
+		DEBUG_PRINT("-> (");
+		DEBUG_PRINT(response);
+		DEBUG_PRINTLN(")");
 	}
 }
 
