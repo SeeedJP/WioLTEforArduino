@@ -158,6 +158,8 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 
 		const char* response = ReadResponse();
 
+		if (response[0] == '\0') continue;
+
 		if (strcmp(response, waitResponse) == 0) {
 			DEBUG_PRINT("-> ");
 			DEBUG_PRINTLN(response);
