@@ -258,7 +258,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 	if (!_Module.WaitForResponse("+QIRD: ", parameter, sizeof(parameter), 500)) return false;
 	int dataLength = atoi(parameter);
 	if (dataLength > dataSize) return -1;
-	if (_Module.ReadBytes(data, dataLength) != dataLength) return -1;
+	if (_Module.Read(data, dataLength, 500) != dataLength) return -1;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return -1;							// TODO
 
 	return dataLength;

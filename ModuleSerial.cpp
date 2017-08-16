@@ -68,6 +68,21 @@ bool WioLTE::ModuleSerial::WaitForAvailable(WioLTE::Stopwatch* sw, long timeout)
 	return true;
 }
 
+int WioLTE::ModuleSerial::Read(byte* data, int dataSize)
+{
+	for (int i = 0; i < dataSize; i++) {
+		// Wait for available.
+		WioLTE::Stopwatch sw;
+		sw.Start();
+		if (!WaitForAvailable(&sw, 10)) return i;
+
+		// Read byte.
+		data[i] = SerialRead();
+	}
+
+	return dataSize;
+}
+
 const char* WioLTE::ModuleSerial::ReadResponse(const char* match)
 {
 	int matchSize;
@@ -155,6 +170,15 @@ void WioLTE::ModuleSerial::Write(const char* str)
 	SerialWrite((const byte*)str, strlen(str));
 }
 
+int WioLTE::ModuleSerial::Read(byte* data, int dataSize, long timeout)
+{
+	WioLTE::Stopwatch sw;
+	sw.Start();
+
+	if (!WaitForAvailable(&sw, timeout)) return 0;
+
+	return Read(data, dataSize);
+}
 
 void WioLTE::ModuleSerial::WriteCommand(const char* command)
 {
