@@ -115,7 +115,7 @@ public:
 		SOCKET_UDP,
 	};
 
-public:
+private:
 	bool Reset();
 	bool TurnOn();
 
