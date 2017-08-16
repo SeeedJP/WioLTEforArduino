@@ -4,8 +4,6 @@
 
 #define DEBUG
 
-#define MODULE_RESPONSE_MAX_SIZE	(100)
-
 #ifdef DEBUG
 #define DEBUG_PRINT(str)			SerialUSB.print(str)
 #define DEBUG_PRINTLN(str)			SerialUSB.println(str)

@@ -4,49 +4,16 @@
 
 #define DEBUG
 
-#define MODULE_RESPONSE_MAX_SIZE	(100)
-
 #ifdef DEBUG
 #define DEBUG_PRINT(str)			SerialUSB.print(str)
 #define DEBUG_PRINTLN(str)			SerialUSB.println(str)
-#define DEBUG_PRINTLN_DUMP(data)	DebugPrintlnDump(data)
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
-#define DEBUG_PRINTLN_DUMP(data)
 #endif
 
 #define CHAR_CR (0x0d)
 #define CHAR_LF (0x0a)
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Helper functions
-
-static void DebugPrintlnDump(const char* data)
-{
-	char message[10];
-	int length = strlen(data);
-
-	SerialUSB.print(length);
-
-	SerialUSB.print(":");
-
-	for (int i = 0; i < length; i++) {
-		if (data[i] >= 0x20)
-			SerialUSB.print((char)data[i]);
-		else
-			SerialUSB.print('.');
-	}
-
-	SerialUSB.print(":");
-
-	for (int i = 0; i < length; i++) {
-		sprintf(message, "%02x ", data[i]);
-		SerialUSB.print(message);
-	}
-
-	SerialUSB.println("");
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // ModuleSerial
