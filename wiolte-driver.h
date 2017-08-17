@@ -48,6 +48,23 @@ private:
 	};
 
 	/////////////////////////////////////////////////////////////////////
+	// ArgumentParser
+
+private:
+	class ArgumentParser
+	{
+	public:
+		std::vector< std::vector<char> > _Arguments;
+
+	public:
+		ArgumentParser();
+		void Parse(const char* str);
+		int Size() const;
+		const char* operator[](int index) const;
+
+	};
+
+	/////////////////////////////////////////////////////////////////////
 	// ModuleSerial
 
 private:
