@@ -138,7 +138,8 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 			if (strncmp(response, waitResponse, strlen(waitResponse)) == 0) {
 				DEBUG_PRINT("-> ");
 				DEBUG_PRINTLN(response);
-				return response;
+
+				return flag & WFR_REMOVE_START_WITH ? &response[strlen(waitResponse)] : response;
 			}
 		}
 		else {

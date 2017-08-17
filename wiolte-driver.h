@@ -79,8 +79,9 @@ private:
 
 	public:
 		enum WaitForResponseFlag {
-			WFR_WITHOUT_DELIM	= 0x01,
-			WFR_START_WITH		= 0x02,
+			WFR_WITHOUT_DELIM		= 0x01,
+			WFR_START_WITH			= 0x02,
+			WFR_REMOVE_START_WITH	= 0x04,
 		};
 
 	public:

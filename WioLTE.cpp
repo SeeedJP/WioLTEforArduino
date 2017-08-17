@@ -175,18 +175,18 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	const char* parameter;
 
 	_Module.WriteCommand("AT+CREG?");
-	if ((parameter = _Module.WaitForResponse("+CREG: ", 500, ModuleSerial::WFR_START_WITH)) == NULL) return false;
-	if (strcmp(parameter, "+CREG: 0,1") != 0) return false;	// TODO
+	if ((parameter = _Module.WaitForResponse("+CREG: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if (strcmp(parameter, "0,1") != 0 && strcmp(parameter, "0,3") != 0) return false;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
 
 	_Module.WriteCommand("AT+CGREG?");
-	if ((parameter = _Module.WaitForResponse("+CGREG: ", 500, ModuleSerial::WFR_START_WITH)) == NULL) return false;
-	if (strcmp(parameter, "+CGREG: 0,1") != 0) return false;	// TODO
+	if ((parameter = _Module.WaitForResponse("+CGREG: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if (strcmp(parameter, "0,1") != 0) return false;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
 
 	_Module.WriteCommand("AT+CEREG?");
-	if ((parameter = _Module.WaitForResponse("+CEREG: ", 500, ModuleSerial::WFR_START_WITH)) == NULL) return false;
-	if (strcmp(parameter, "+CEREG: 0,1") != 0) return false;	// TODO
+	if ((parameter = _Module.WaitForResponse("+CEREG: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if (strcmp(parameter, "0,1") != 0) return false;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
 
 	char* str = (char*)alloca(15 + strlen(accessPointName) + 3 + strlen(userName) + 3 + strlen(password) + 3 + 1);
