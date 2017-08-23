@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Seeed_ws2812.h>
+#include <time.h>
 #include <vector>
 
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
@@ -148,6 +149,7 @@ public:
 	bool TurnOnOrReset();
 
 	int GetReceivedSignalStrength();
+	bool GetTime(struct tm* tim);
 
 	bool SendSMS(const char* dialNumber, const char* message);
 

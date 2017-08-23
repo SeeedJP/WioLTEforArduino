@@ -190,6 +190,36 @@ int WioLTE::GetReceivedSignalStrength()
 	return -999;
 }
 
+bool WioLTE::GetTime(struct tm* tim)
+{
+	const char* parameter;
+
+	_Module.WriteCommand("AT+CCLK?");
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CCLK: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
+
+	if (strlen(parameter) != 19) return false;
+	if (parameter[0] != '"') return false;
+	if (parameter[3] != '/') return false;
+	if (parameter[6] != '/') return false;
+	if (parameter[9] != ',') return false;
+	if (parameter[12] != ':') return false;
+	if (parameter[15] != ':') return false;
+	if (parameter[18] != '"') return false;
+
+	tim->tm_year = 1900 + atoi(&parameter[1]);
+	tim->tm_mon = atoi(&parameter[4]) - 1;
+	tim->tm_mday = atoi(&parameter[7]);
+	tim->tm_hour = atoi(&parameter[10]);
+	tim->tm_min = atoi(&parameter[13]);
+	tim->tm_sec = atoi(&parameter[16]);
+	tim->tm_wday = 0;
+	tim->tm_yday = 0;
+	tim->tm_isdst = -1;
+
+	return true;
+}
+
 bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
 	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500) == NULL) return false;
@@ -356,7 +386,6 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize, long timeout)
 	}
 	return dataLength;
 }
-
 
 bool WioLTE::SocketClose(int connectId)
 {
