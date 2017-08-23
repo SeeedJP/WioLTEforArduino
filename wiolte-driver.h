@@ -154,6 +154,7 @@ public:
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
 
 	int SocketOpen(const char* host, int port, SocketType type);
+	bool SocketSend(int connectId, const byte* data, int dataSize);
 	bool SocketSend(int connectId, const char* data);
 	int SocketReceive(int connectId, byte* data, int dataSize);
 	int SocketReceive(int connectId, char* data, int dataSize);

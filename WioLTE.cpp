@@ -269,12 +269,6 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 
 	} while (strcmp(response, "OK") != 0);
 
-	for (int i = 0; i < CONNECT_ID_NUM; i++) {
-		char str[100];
-		sprintf(str, "connectIdUsed[%d] = %s", i, connectIdUsed[i] ? "true" : "false");
-		DEBUG_PRINTLN(str);
-	}
-
 	int connectId;
 	for (connectId = 0; connectId < CONNECT_ID_NUM; connectId++) {
 		if (!connectIdUsed[connectId]) break;
@@ -291,39 +285,41 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 	return connectId;
 }
 
-bool WioLTE::SocketSend(int connectId, const char* data)
+bool WioLTE::SocketSend(int connectId, const byte* data, int dataSize)
 {
-	if (connectId > 11) return false;
-	int dataLength = strlen(data);
-	if (dataLength > 1460) return false;
+	if (connectId >= CONNECT_ID_NUM) return false;
+	if (dataSize > 1460) return false;
 
 	char* str = (char*)alloca(10 + 2 + 1 + 4 + 1);
-	sprintf(str, "AT+QISEND=%d,%d", connectId, dataLength);
+	sprintf(str, "AT+QISEND=%d,%d", connectId, dataSize);
 	_Module.WriteCommand(str);
-	if (_Module.WaitForResponse(NULL, 2000, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return false;	// TODO
-	_Module.Write(data);
-	if (_Module.WaitForResponse("SEND OK", 5000) == NULL) return false;	// TODO
+	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return false;
+	_Module.Write(data, dataSize);
+	if (_Module.WaitForResponse("SEND OK", 5000) == NULL) return false;
 
 	return true;
 }
 
+bool WioLTE::SocketSend(int connectId, const char* data)
+{
+	return SocketSend(connectId, (const byte*)data, strlen(data));
+}
+
 int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 {
-	if (connectId > 11) return false;
-
-	char* str = (char*)alloca(15 + 2 + 1);
-	sprintf(str, "+QIURC: \"recv\",%d", connectId);
-	if (_Module.WaitForResponse(str, 30000) == NULL) return -1;						// TODO
+	if (connectId >= CONNECT_ID_NUM) return -1;
 
 	char* str2 = (char*)alloca(8 + 2 + 1);
 	sprintf(str2, "AT+QIRD=%d", connectId);
 	_Module.WriteCommand(str2);
 	const char* parameter;
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+QIRD: ", ModuleSerial::WFR_START_WITH)) == NULL) return false;
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+QIRD: ", ModuleSerial::WFR_START_WITH)) == NULL) return -1;
 	int dataLength = atoi(&parameter[7]);
-	if (dataLength > dataSize) return -1;
-	if (_Module.Read(data, dataLength, 500) != dataLength) return -1;
-	if (_Module.WaitForResponse("OK", 500) == NULL) return -1;							// TODO
+	if (dataLength >= 1) {
+		if (dataLength > dataSize) return -1;
+		if (_Module.Read(data, dataLength, 500) != dataLength) return -1;
+	}
+	if (_Module.WaitForResponse("OK", 500) == NULL) return -1;
 
 	return dataLength;
 }
@@ -338,11 +334,11 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize)
 
 bool WioLTE::SocketClose(int connectId)
 {
-	if (connectId > 11) return false;
+	if (connectId >= CONNECT_ID_NUM) return false;
 
 	char* str = (char*)alloca(11 + 2 + 1);
 	sprintf(str, "AT+QICLOSE=%d", connectId);
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 30000) == NULL) return false;		// TODO
+	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 10000) == NULL) return false;
 
 	return true;
 }
