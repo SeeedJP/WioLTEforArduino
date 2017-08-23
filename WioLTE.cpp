@@ -164,7 +164,7 @@ int WioLTE::GetReceivedSignalStrength()
 	const char* parameter;
 
 	_Module.WriteCommand("AT+CSQ");
-	if ((parameter = _Module.WaitForResponse("+CSQ: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return INT_MIN;
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CSQ: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return INT_MIN;
 
 	ArgumentParser parser;
 	parser.Parse(parameter);
@@ -206,17 +206,17 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	const char* parameter;
 
 	_Module.WriteCommand("AT+CREG?");
-	if ((parameter = _Module.WaitForResponse("+CREG: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
 	if (strcmp(parameter, "0,1") != 0 && strcmp(parameter, "0,3") != 0) return false;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
 
 	_Module.WriteCommand("AT+CGREG?");
-	if ((parameter = _Module.WaitForResponse("+CGREG: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CGREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
 	if (strcmp(parameter, "0,1") != 0) return false;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
 
 	_Module.WriteCommand("AT+CEREG?");
-	if ((parameter = _Module.WaitForResponse("+CEREG: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CEREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
 	if (strcmp(parameter, "0,1") != 0) return false;
 	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
 
@@ -265,7 +265,7 @@ bool WioLTE::SocketSend(int connectId, const char* data)
 	char* str = (char*)alloca(10 + 2 + 1 + 4 + 1);
 	sprintf(str, "AT+QISEND=%d,%d", connectId, dataLength);
 	_Module.WriteCommand(str);
-	if (_Module.WaitForResponse("> ", 2000, ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return false;	// TODO
+	if (_Module.WaitForResponse(NULL, 2000, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return false;	// TODO
 	_Module.Write(data);
 	if (_Module.WaitForResponse("SEND OK", 5000) == NULL) return false;	// TODO
 
@@ -284,7 +284,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 	sprintf(str2, "AT+QIRD=%d", connectId);
 	_Module.WriteCommand(str2);
 	const char* parameter;
-	if ((parameter = _Module.WaitForResponse("+QIRD: ", 500, ModuleSerial::WFR_START_WITH)) == NULL) return false;
+	if ((parameter = _Module.WaitForResponse(NULL, 500, "+QIRD: ", ModuleSerial::WFR_START_WITH)) == NULL) return false;
 	int dataLength = atoi(&parameter[7]);
 	if (dataLength > dataSize) return -1;
 	if (_Module.Read(data, dataLength, 500) != dataLength) return -1;

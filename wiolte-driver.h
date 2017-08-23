@@ -102,7 +102,7 @@ private:
 		int Read(byte* data, int dataSize, long timeout);
 
 		void WriteCommand(const char* command);
-		const char* WaitForResponse(const char* waitResponse, long timeout, WaitForResponseFlag flag = (WaitForResponseFlag)0);
+		const char* WaitForResponse(const char* waitResponse, long timeout, const char* waitPattern = NULL, WaitForResponseFlag waitPatternFlag = (WaitForResponseFlag)0);
 		const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
 
 	};

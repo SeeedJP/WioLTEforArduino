@@ -122,7 +122,7 @@ void WioLTE::ModuleSerial::WriteCommand(const char* command)
 	SerialWrite(CHAR_CR);
 }
 
-const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long timeout, WioLTE::ModuleSerial::WaitForResponseFlag flag)
+const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long timeout, const char* waitPattern, WaitForResponseFlag waitPatternFlag)
 {
 	WioLTE::Stopwatch sw;
 	sw.Start();
@@ -130,23 +130,33 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 	while (true) {
 		if (!WaitForAvailable(&sw, timeout)) return NULL;
 
-		const char* response = ReadResponse(flag & WFR_WITHOUT_DELIM ? waitResponse : NULL);
+		const char* response = ReadResponse(waitPatternFlag & WFR_WITHOUT_DELIM ? waitPattern : NULL);
 
 		if (response[0] == '\0') continue;
 
-		if (flag & WFR_START_WITH) {
-			if (strncmp(response, waitResponse, strlen(waitResponse)) == 0) {
-				DEBUG_PRINT("-> ");
-				DEBUG_PRINTLN(response);
-
-				return flag & WFR_REMOVE_START_WITH ? &response[strlen(waitResponse)] : response;
-			}
-		}
-		else {
+		// waitResponse?
+		if (waitResponse != NULL) {
 			if (strcmp(response, waitResponse) == 0) {
 				DEBUG_PRINT("-> ");
 				DEBUG_PRINTLN(response);
 				return response;
+			}
+		}
+
+		// pattern?
+		if (waitPattern != NULL) {
+			if (waitPatternFlag & WFR_START_WITH) {
+				if (strncmp(response, waitPattern, strlen(waitPattern)) == 0) {
+					DEBUG_PRINT("-> ");
+					DEBUG_PRINTLN(response);
+
+					return waitPatternFlag & WFR_REMOVE_START_WITH ? &response[strlen(waitPattern)] : response;
+				}
+			} else if (strcmp(response, waitPattern) == 0) {
+				DEBUG_PRINT("-> ");
+				DEBUG_PRINTLN(response);
+
+				return waitPatternFlag & WFR_REMOVE_START_WITH ? &response[strlen(waitPattern)] : response;
 			}
 		}
 
