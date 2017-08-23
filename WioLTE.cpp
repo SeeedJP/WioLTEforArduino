@@ -207,7 +207,7 @@ bool WioLTE::GetTime(struct tm* tim)
 	if (parameter[15] != ':') return false;
 	if (parameter[18] != '"') return false;
 
-	tim->tm_year = 1900 + atoi(&parameter[1]);
+	tim->tm_year = 2000 + atoi(&parameter[1]);
 	tim->tm_mon = atoi(&parameter[4]) - 1;
 	tim->tm_mday = atoi(&parameter[7]);
 	tim->tm_hour = atoi(&parameter[10]);
@@ -260,6 +260,18 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000) == NULL) return false;
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000) == NULL) return false;
+
+	return true;
+}
+
+bool WioLTE::SyncTime(const char* host)
+{
+	const char* parameter;
+
+	char* str = (char*)alloca(11 + strlen(host) + 1 + 1);
+	sprintf(str, "AT+QNTP=1,\"%s\"", host);
+	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return false;
+	if ((parameter = _Module.WaitForResponse(NULL, 125000, "+QNTP: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return false;
 
 	return true;
 }
