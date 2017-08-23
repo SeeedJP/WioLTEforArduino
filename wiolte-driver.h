@@ -147,6 +147,8 @@ public:
 	bool IsBusy() const;
 	bool TurnOnOrReset();
 
+	int GetReceivedSignalStrength();
+
 	bool SendSMS(const char* dialNumber, const char* message);
 
 	bool Activate(const char* accessPointName, const char* userName, const char* password);

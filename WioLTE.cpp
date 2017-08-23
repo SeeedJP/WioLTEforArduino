@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <stdio.h>
+#include <limits.h>
 #include "wiolte-driver.h"
 
 #define DEBUG
@@ -11,6 +12,8 @@
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
 #endif
+
+#define LINEAR_SCALE(val, inMin, inMax, outMin, outMax)	(((val) - (inMin)) / ((inMax) - (inMin)) * ((outMax) - (outMin)) + (outMin))
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -154,6 +157,34 @@ bool WioLTE::TurnOnOrReset()
 	DEBUG_PRINTLN("");
 
 	return true;
+}
+
+int WioLTE::GetReceivedSignalStrength()
+{
+	const char* parameter;
+
+	_Module.WriteCommand("AT+CSQ");
+	if ((parameter = _Module.WaitForResponse("+CSQ: ", 500, (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return INT_MIN;
+
+	ArgumentParser parser;
+	parser.Parse(parameter);
+	if (parser.Size() != 2) return INT_MIN;
+	int rssi = atoi(parser[0]);
+
+	if (_Module.WaitForResponse("OK", 500) == NULL) return INT_MIN;
+
+	if (rssi == 0) return -113;
+	else if (rssi == 1) return -111;
+	else if (2 <= rssi && rssi <= 30) return LINEAR_SCALE((double)rssi, 2, 30, -109, -53);
+	else if (rssi == 31) return -51;
+	else if (rssi == 99) return -999;
+	else if (rssi == 100) return -116;
+	else if (rssi == 101) return -115;
+	else if (102 <= rssi && rssi <= 190) return LINEAR_SCALE((double)rssi, 102, 190, -114, -26);
+	else if (rssi == 191) return -25;
+	else if (rssi == 199) return -999;
+	
+	return -999;
 }
 
 bool WioLTE::SendSMS(const char* dialNumber, const char* message)
