@@ -14,6 +14,7 @@
 #endif
 
 #define CONNECT_ID_NUM				(12)
+#define POLLING_INTERVAL			(100)
 
 #define LINEAR_SCALE(val, inMin, inMax, outMin, outMax)	(((val) - (inMin)) / ((inMax) - (inMin)) * ((outMax) - (outMin)) + (outMin))
 
@@ -331,6 +332,31 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize)
 
 	return dataLength;
 }
+
+int WioLTE::SocketReceive(int connectId, byte* data, int dataSize, long timeout)
+{
+	Stopwatch sw;
+	sw.Start();
+	int dataLength;
+	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
+		if (sw.ElapsedMilliseconds() >= timeout) return 0;
+		delay(POLLING_INTERVAL);
+	}
+	return dataLength;
+}
+
+int WioLTE::SocketReceive(int connectId, char* data, int dataSize, long timeout)
+{
+	Stopwatch sw;
+	sw.Start();
+	int dataLength;
+	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
+		if (sw.ElapsedMilliseconds() >= timeout) return 0;
+		delay(POLLING_INTERVAL);
+	}
+	return dataLength;
+}
+
 
 bool WioLTE::SocketClose(int connectId)
 {

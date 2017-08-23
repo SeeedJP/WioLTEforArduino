@@ -158,6 +158,8 @@ public:
 	bool SocketSend(int connectId, const char* data);
 	int SocketReceive(int connectId, byte* data, int dataSize);
 	int SocketReceive(int connectId, char* data, int dataSize);
+	int SocketReceive(int connectId, byte* data, int dataSize, long timeout);
+	int SocketReceive(int connectId, char* data, int dataSize, long timeout);
 	bool SocketClose(int connectId);
 
 };
