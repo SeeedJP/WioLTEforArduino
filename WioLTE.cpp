@@ -153,11 +153,14 @@ bool WioLTE::TurnOnOrReset()
 	if (_Module.WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "OK", 500) == NULL) return false;
 
 	sw.Start();
-	while (_Module.WriteCommandAndWaitForResponse("AT+CPIN?", "OK", 5000) == NULL) {	// TODO
-		DEBUG_PRINT(".");
+	while (true) {
+		_Module.WriteCommand("AT+CPIN?");
+		const char* response = _Module.WaitForResponse("OK", 5000, "+CME ERROR: ", ModuleSerial::WFR_START_WITH);
+		if (response == NULL) return false;
+		if (strcmp(response, "OK") == 0) break;
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
+		delay(POLLING_INTERVAL);
 	}
-	DEBUG_PRINTLN("");
 
 	return true;
 }
@@ -207,7 +210,8 @@ bool WioLTE::GetTime(struct tm* tim)
 	if (parameter[15] != ':') return false;
 	if (parameter[18] != '"') return false;
 
-	tim->tm_year = 2000 + atoi(&parameter[1]);
+	int yearOffset = atoi(&parameter[1]);
+	tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset;
 	tim->tm_mon = atoi(&parameter[4]) - 1;
 	tim->tm_mday = atoi(&parameter[7]);
 	tim->tm_hour = atoi(&parameter[10]);
