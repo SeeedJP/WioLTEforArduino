@@ -13,6 +13,8 @@
 #define DEBUG_PRINTLN(str)
 #endif
 
+#define CONNECT_ID_NUM				(12)
+
 #define LINEAR_SCALE(val, inMin, inMax, outMin, outMax)	(((val) - (inMin)) / ((inMax) - (inMin)) * ((outMax) - (outMin)) + (outMin))
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -248,12 +250,45 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 		return -1;
 	}
 
-	char* str = (char*)alloca(15 + 3 + 3 + strlen(host) + 2 + 5 + 1);
-	sprintf(str, "AT+QIOPEN=1,0,\"%s\",\"%s\",%d", typeStr, host, port);	// TODO
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 150000) == NULL) return -1;
-	if (_Module.WaitForResponse("+QIOPEN: 0,0", 150000) == NULL) return -1;		// TODO
+	bool connectIdUsed[CONNECT_ID_NUM];
+	for (int i = 0; i < CONNECT_ID_NUM; i++) connectIdUsed[i] = false;
 
-	return 0;
+	_Module.WriteCommand("AT+QISTATE?");
+	const char* response;
+	ArgumentParser parser;
+	do {
+		if ((response = _Module.WaitForResponse("OK", 10000, "+QISTATE: ", ModuleSerial::WFR_START_WITH)) == NULL) return -1;
+		if (strncmp(response, "+QISTATE: ", 10) == 0) {
+			parser.Parse(&response[10]);
+			if (parser.Size() >= 1) {
+				int connectId = atoi(parser[0]);
+				if (connectId < 0 || CONNECT_ID_NUM <= connectId) return -1;
+				connectIdUsed[connectId] = true;
+			}
+		}
+
+	} while (strcmp(response, "OK") != 0);
+
+	for (int i = 0; i < CONNECT_ID_NUM; i++) {
+		char str[100];
+		sprintf(str, "connectIdUsed[%d] = %s", i, connectIdUsed[i] ? "true" : "false");
+		DEBUG_PRINTLN(str);
+	}
+
+	int connectId;
+	for (connectId = 0; connectId < CONNECT_ID_NUM; connectId++) {
+		if (!connectIdUsed[connectId]) break;
+	}
+	if (connectId >= CONNECT_ID_NUM) return -1;
+
+	char* str = (char*)alloca(12 + 2 + 2 + 3 + 3 + strlen(host) + 2 + 5 + 1);
+	sprintf(str, "AT+QIOPEN=1,%d,\"%s\",\"%s\",%d", connectId, typeStr, host, port);
+	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 150000) == NULL) return -1;
+	char* str2 = (char*)alloca(9 + 2 + 2 + 1);
+	sprintf(str2, "+QIOPEN: %d,0", connectId);
+	if (_Module.WaitForResponse(str2, 150000) == NULL) return -1;
+
+	return connectId;
 }
 
 bool WioLTE::SocketSend(int connectId, const char* data)
