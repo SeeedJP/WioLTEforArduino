@@ -239,6 +239,109 @@ bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 	return true;
 }
 
+static int HexToInt(char c)
+{
+	if ('0' <= c && c <= '9') return c - '0';
+	else if ('a' <= c && c <= 'f') return c - 'a' + 10;
+	else if ('A' <= c && c <= 'F') return c - 'A' + 10;
+	else return -1;
+}
+
+static bool ConvertHexToBytes(const char* hex, byte* data, int dataSize)
+{
+	int high;
+	int low;
+
+	for (int i = 0; i < dataSize; i++) {
+		high = HexToInt(hex[i * 2]);
+		low = HexToInt(hex[i * 2 + 1]);
+		if (high < 0 || low < 0) return false;
+		data[i] = high * 16 + low;
+	}
+
+	return true;
+}
+
+int WioLTE::ReceiveSMS(char* message, int messageSize)
+{
+	const char* parameter;
+	const char* hex;
+	ArgumentParser parser;
+
+	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return -1;
+
+	_Module.WriteCommand("AT+CMGL=4");	// ALL
+
+	int messageIndex = -1;
+	while (true) {
+		parameter = _Module.WaitForResponse("OK", 500, "+CMGL: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
+		if (parameter == NULL) return -1;
+		if (strcmp(parameter, "OK") == 0) break;
+		if (messageIndex < 0) {
+			parser.Parse(parameter);
+			if (parser.Size() != 4) return -1;
+			messageIndex = atoi(parser[0]);
+		}
+
+		const char* hex = _Module.WaitForResponse(NULL, 500, "");
+		if (hex == NULL) return -1;
+	}
+	if (messageIndex < 0) return 0;
+	if (messageIndex > 999999) return -1;
+
+	char* str = (char*)alloca(8 + 6 + 1);
+	sprintf(str, "AT+CMGR=%d", messageIndex);
+	_Module.WriteCommand(str);
+
+	parameter = _Module.WaitForResponse(NULL, 500, "+CMGR: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
+	if (parameter == NULL) return -1;
+
+	hex = _Module.WaitForResponse(NULL, 500, "");
+	if (hex == NULL) return -1;
+	int hexSize = strlen(hex);
+	if (hexSize % 2 != 0) return -1;
+	int dataSize = hexSize / 2;
+	byte* data = (byte*)alloca(dataSize);
+	if (!ConvertHexToBytes(hex, data, dataSize)) return -1;
+	byte* dataEnd = &data[dataSize];
+
+	// http://www.etsi.org/deliver/etsi_gts/03/0340/05.03.00_60/gsmts_0340v050300p.pdf
+	// http://www.etsi.org/deliver/etsi_gts/03/0338/05.00.00_60/gsmts_0338v050000p.pdf
+	byte* smscInfoSize = data;
+	byte* tpMti = smscInfoSize + 1 + *smscInfoSize;
+	if (tpMti >= dataEnd) return -1;
+	if ((*tpMti & 0xc0) != 0) return -1;	// SMS-DELIVER
+	byte* tpOaSize = tpMti + 1;
+	if (tpOaSize >= dataEnd) return -1;
+	byte* tpPid = tpOaSize + 2 + *tpOaSize / 2 + *tpOaSize % 2;
+	if (tpPid >= dataEnd) return -1;
+	byte* tpDcs = tpPid + 1;
+	if (tpDcs >= dataEnd) return -1;
+	byte* tpScts = tpDcs + 1;
+	if (tpScts >= dataEnd) return -1;
+	byte* tpUdl = tpScts + 7;
+	if (tpUdl >= dataEnd) return -1;
+	byte* tpUd = tpUdl + 1;
+	if (tpUd >= dataEnd) return -1;
+
+	if (messageSize < *tpUdl + 1) return -1;
+	for (int i = 0; i < *tpUdl; i++) {
+		int offset = i - i / 8;
+		int shift = i % 8;
+		if (shift == 0) {
+			message[i] = tpUd[offset] & 0x7f;
+		}
+		else {
+			message[i] = tpUd[offset] * 256 + tpUd[offset - 1] << shift >> 8 & 0x7f;
+		}
+	}
+	message[*tpUdl] = '\0';
+
+	if (_Module.WaitForResponse("OK", 500) == NULL) return -1;
+
+	return *tpUdl;
+}
+
 bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password)
 {
 	const char* parameter;

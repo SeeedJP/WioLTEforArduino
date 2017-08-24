@@ -152,6 +152,7 @@ public:
 	bool GetTime(struct tm* tim);
 
 	bool SendSMS(const char* dialNumber, const char* message);
+	int ReceiveSMS(char* message, int messageSize);
 
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
 

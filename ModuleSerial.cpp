@@ -145,7 +145,11 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 
 		// pattern?
 		if (waitPattern != NULL) {
-			if (waitPatternFlag & WFR_START_WITH) {
+			if (waitPattern[0] == '\0') {
+				DEBUG_PRINT("-> ");
+				DEBUG_PRINTLN(response);
+				return response;
+			} else if (waitPatternFlag & WFR_START_WITH) {
 				if (strncmp(response, waitPattern, strlen(waitPattern)) == 0) {
 					DEBUG_PRINT("-> ");
 					DEBUG_PRINTLN(response);
