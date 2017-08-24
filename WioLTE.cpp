@@ -230,7 +230,8 @@ bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 
 	char* str = (char*)alloca(9 + strlen(dialNumber) + 1 + 1);
 	sprintf(str, "AT+CMGS=\"%s\"", dialNumber);
-	if (_Module.WriteCommandAndWaitForResponse(str, "", 500) == NULL) return false;
+	_Module.WriteCommand(str);
+	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return false;
 	_Module.Write(message);
 	_Module.Write("\x1a");
 	if (_Module.WaitForResponse("OK", 120000) == NULL) return false;
