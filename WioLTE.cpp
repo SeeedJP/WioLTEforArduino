@@ -121,6 +121,34 @@ bool WioLTE::TurnOn()
 	return true;
 }
 
+int WioLTE::GetFirstIndexOfReceivedSMS()
+{
+	const char* parameter;
+	const char* hex;
+	ArgumentParser parser;
+
+	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return -1;
+
+	_Module.WriteCommand("AT+CMGL=4");	// ALL
+
+	int messageIndex = -1;
+	while (true) {
+		parameter = _Module.WaitForResponse("OK", 500, "+CMGL: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
+		if (parameter == NULL) return -1;
+		if (strcmp(parameter, "OK") == 0) break;
+		if (messageIndex < 0) {
+			parser.Parse(parameter);
+			if (parser.Size() != 4) return -1;
+			messageIndex = atoi(parser[0]);
+		}
+
+		const char* hex = _Module.WaitForResponse(NULL, 500, "");
+		if (hex == NULL) return -1;
+	}
+
+	return messageIndex < 0 ? -2 : messageIndex;
+}
+
 WioLTE::WioLTE() : _Module(), _Led(1, RGB_LED_PIN)
 {
 }
@@ -285,28 +313,13 @@ int WioLTE::ReceiveSMS(char* message, int messageSize)
 {
 	const char* parameter;
 	const char* hex;
-	ArgumentParser parser;
+
+	int messageIndex = GetFirstIndexOfReceivedSMS();
+	if (messageIndex == -2) return RET_OK(0);
+	if (messageIndex < 0) return RET_ERR(-1);
+	if (messageIndex > 999999) return RET_ERR(-1);
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return RET_ERR(-1);
-
-	_Module.WriteCommand("AT+CMGL=4");	// ALL
-
-	int messageIndex = -1;
-	while (true) {
-		parameter = _Module.WaitForResponse("OK", 500, "+CMGL: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
-		if (parameter == NULL) return RET_ERR(-1);
-		if (strcmp(parameter, "OK") == 0) break;
-		if (messageIndex < 0) {
-			parser.Parse(parameter);
-			if (parser.Size() != 4) return RET_ERR(-1);
-			messageIndex = atoi(parser[0]);
-		}
-
-		const char* hex = _Module.WaitForResponse(NULL, 500, "");
-		if (hex == NULL) return RET_ERR(-1);
-	}
-	if (messageIndex < 0) return RET_OK(0);
-	if (messageIndex > 999999) return RET_ERR(-1);
 
 	char* str = (char*)alloca(8 + 6 + 1);
 	sprintf(str, "AT+CMGR=%d", messageIndex);

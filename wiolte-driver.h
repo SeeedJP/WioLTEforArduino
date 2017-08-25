@@ -141,6 +141,8 @@ private:
 	bool Reset();
 	bool TurnOn();
 
+	int GetFirstIndexOfReceivedSMS();
+
 public:
 	WioLTE();
 	void Init();
