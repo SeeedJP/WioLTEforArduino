@@ -135,6 +135,9 @@ public:
 	};
 
 private:
+	bool ErrorOccured(int lineNumber, bool value);
+	int ErrorOccured(int lineNumber, int value);
+
 	bool Reset();
 	bool TurnOn();
 
