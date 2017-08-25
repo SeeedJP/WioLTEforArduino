@@ -3,7 +3,7 @@
 #include <limits.h>
 #include "wiolte-driver.h"
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define DEBUG_PRINT(str)			SerialUSB.print(str)
@@ -372,6 +372,20 @@ int WioLTE::ReceiveSMS(char* message, int messageSize)
 	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(-1);
 
 	return RET_OK(*tpUdl);
+}
+
+bool WioLTE::DeleteReceivedSMS()
+{
+	int messageIndex = GetFirstIndexOfReceivedSMS();
+	if (messageIndex == -2) return RET_ERR(false);
+	if (messageIndex < 0) return RET_ERR(false);
+	if (messageIndex > 999999) return RET_ERR(false);
+
+	char* str = (char*)alloca(8 + 6 + 1);
+	sprintf(str, "AT+CMGD=%d", messageIndex);
+	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return RET_ERR(false);
+
+	return RET_OK(true);
 }
 
 bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password)
