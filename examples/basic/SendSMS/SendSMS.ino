@@ -1,28 +1,31 @@
 #include <wiolte-driver.h>
 
+#define PHONE_NUMBER  "01234567890"
+
+WioLTE Wio;
+
 void setup() {
   delay(200);
 
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   
-  WioLTE wio;
-  
   SerialUSB.println("### I/O Initialize.");
-  wio.Init();
+  Wio.Init();
   
   SerialUSB.println("### Power supply ON.");
-  wio.PowerSupplyLTE(true);
+  Wio.PowerSupplyLTE(true);
   delay(5000);
 
   SerialUSB.println("### Turn on or reset.");
-  if (!wio.TurnOnOrReset()) {
+  if (!Wio.TurnOnOrReset()) {
     SerialUSB.println("### ERROR! ###");
     return;
   }
+  delay(3000);
   
   SerialUSB.println("### Send SMS.");
-  if (!wio.SendSMS("0123456789", "Hello world!")) {
+  if (!Wio.SendSMS(PHONE_NUMBER, "Hello world!")) {
     SerialUSB.println("### ERROR! ###");
     return;
   }
