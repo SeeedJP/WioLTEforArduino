@@ -325,7 +325,7 @@ bool WioLTE::GetTime(struct tm* tim)
 	if (parameter[18] != '"') return RET_ERR(false);
 
 	int yearOffset = atoi(&parameter[1]);
-	tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset;
+	tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset - 1900;
 	tim->tm_mon = atoi(&parameter[4]) - 1;
 	tim->tm_mday = atoi(&parameter[7]);
 	tim->tm_hour = atoi(&parameter[10]);
