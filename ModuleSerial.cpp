@@ -5,8 +5,17 @@
 //#define DEBUG
 
 #ifdef DEBUG
-#define DEBUG_PRINT(str)			SerialUSB.print(str)
-#define DEBUG_PRINTLN(str)			SerialUSB.println(str)
+#define DEBUG_PRINT(str)			DebugPrint(str)
+#define DEBUG_PRINTLN(str)			DebugPrintln(str)
+static void DebugPrint(const char* str)
+{
+	for (int i = 0; i < strlen(str); i++) SerialUSB.print(str[i]);
+}
+static void DebugPrintln(const char* str)
+{
+	DebugPrint(str);
+	DebugPrint("\r\n");
+}
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)

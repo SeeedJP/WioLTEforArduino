@@ -1,18 +1,30 @@
-WioLTE				KEYWORD1
+WioLTE						KEYWORD1
 
-Init				KEYWORD2
-PowerSupplyLTE		KEYWORD2
-PowerSupplyGNSS		KEYWORD2
-PowerSupplyGrove	KEYWORD2
-IsBusy				KEYWORD2
-TurnOn				KEYWORD2
-TurnOnOrReset		KEYWORD2
-SendSMS				KEYWORD2
-Activate			KEYWORD2
-SocketOpen			KEYWORD2
-SocketSend			KEYWORD2
-SocketReceive		KEYWORD2
-SocketClose			KEYWORD2
+Init						KEYWORD2
+LedSetRGB					KEYWORD2
+PowerSupplyLTE				KEYWORD2
+PowerSupplyGNSS				KEYWORD2
+PowerSupplyGrove			KEYWORD2
+IsBusy						KEYWORD2
+TurnOnOrReset				KEYWORD2
 
-WIOLTE_TCP			LITERAL1
-WIOLTE_UDP			LITERAL1
+GetReceivedSignalStrength	KEYWORD2
+GetTime						KEYWORD2
+
+SendSMS						KEYWORD2
+ReceiveSMS					KEYWORD2
+DeleteReceivedSMS			KEYWORD2
+
+Activate					KEYWORD2
+
+SyncTime					KEYWORD2
+
+SocketOpen					KEYWORD2
+SocketSend					KEYWORD2
+SocketReceive				KEYWORD2
+SocketClose					KEYWORD2
+
+HttpGet						KEYWORD2
+
+WIOLTE_TCP					LITERAL1
+WIOLTE_UDP					LITERAL1

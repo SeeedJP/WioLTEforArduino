@@ -143,6 +143,8 @@ private:
 
 	int GetFirstIndexOfReceivedSMS();
 
+	bool HttpSetUrl(const char* url);
+
 public:
 	WioLTE();
 	void Init();
@@ -172,5 +174,7 @@ public:
 	int SocketReceive(int connectId, byte* data, int dataSize, long timeout);
 	int SocketReceive(int connectId, char* data, int dataSize, long timeout);
 	bool SocketClose(int connectId);
+
+	int HttpGet(const char* url, char* data, int dataSize);
 
 };

@@ -6,8 +6,17 @@
 //#define DEBUG
 
 #ifdef DEBUG
-#define DEBUG_PRINT(str)			SerialUSB.print(str)
-#define DEBUG_PRINTLN(str)			SerialUSB.println(str)
+#define DEBUG_PRINT(str)			DebugPrint(str)
+#define DEBUG_PRINTLN(str)			DebugPrintln(str)
+static void DebugPrint(const char* str)
+{
+	for (int i = 0; i < strlen(str); i++) SerialUSB.print(str[i]);
+}
+static void DebugPrintln(const char* str)
+{
+	DebugPrint(str);
+	DebugPrint("\r\n");
+}
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
@@ -58,21 +67,42 @@ static bool ConvertHexToBytes(const char* hex, byte* data, int dataSize)
 	return true;
 }
 
+static int NumberOfDigits(int value)
+{
+	int digits = 0;
+
+	if (value < 0) {
+		digits++;
+		value *= -1;
+	}
+
+	do {
+		digits++;
+		value /= 10;
+	} while (value > 0);
+
+	return digits;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // WioLTE
 
 bool WioLTE::ErrorOccured(int lineNumber, bool value)
 {
+	char str[100];
+	sprintf(str, "%d", lineNumber);
 	DEBUG_PRINT("ERROR! ");
-	DEBUG_PRINTLN(lineNumber);
+	DEBUG_PRINTLN(str);
 
 	return value;
 }
 
 int WioLTE::ErrorOccured(int lineNumber, int value)
 {
+	char str[100];
+	sprintf(str, "%d", lineNumber);
 	DEBUG_PRINT("ERROR! ");
-	DEBUG_PRINTLN(lineNumber);
+	DEBUG_PRINTLN(str);
 
 	return value;
 }
@@ -147,6 +177,20 @@ int WioLTE::GetFirstIndexOfReceivedSMS()
 	}
 
 	return messageIndex < 0 ? -2 : messageIndex;
+}
+
+bool WioLTE::HttpSetUrl(const char* url)
+{
+	int urlSize = strlen(url);
+	char* str = (char*)alloca(12 + NumberOfDigits(urlSize) + 1);
+	sprintf(str, "AT+QHTTPURL=%d", urlSize);
+	_Module.WriteCommand(str);
+	if (_Module.WaitForResponse("CONNECT", 500) == NULL) return false;
+
+	_Module.Write(url);
+	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
+
+	return true;
 }
 
 WioLTE::WioLTE() : _Module(), _Led(1, RGB_LED_PIN)
@@ -317,11 +361,10 @@ int WioLTE::ReceiveSMS(char* message, int messageSize)
 	int messageIndex = GetFirstIndexOfReceivedSMS();
 	if (messageIndex == -2) return RET_OK(0);
 	if (messageIndex < 0) return RET_ERR(-1);
-	if (messageIndex > 999999) return RET_ERR(-1);
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return RET_ERR(-1);
 
-	char* str = (char*)alloca(8 + 6 + 1);
+	char* str = (char*)alloca(8 + NumberOfDigits(messageIndex) + 1);
 	sprintf(str, "AT+CMGR=%d", messageIndex);
 	_Module.WriteCommand(str);
 
@@ -379,9 +422,8 @@ bool WioLTE::DeleteReceivedSMS()
 	int messageIndex = GetFirstIndexOfReceivedSMS();
 	if (messageIndex == -2) return RET_ERR(false);
 	if (messageIndex < 0) return RET_ERR(false);
-	if (messageIndex > 999999) return RET_ERR(false);
 
-	char* str = (char*)alloca(8 + 6 + 1);
+	char* str = (char*)alloca(8 + NumberOfDigits(messageIndex) + 1);
 	sprintf(str, "AT+CMGD=%d", messageIndex);
 	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return RET_ERR(false);
 
@@ -472,10 +514,10 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 	}
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1);
 
-	char* str = (char*)alloca(12 + 2 + 2 + 3 + 3 + strlen(host) + 2 + 5 + 1);
+	char* str = (char*)alloca(12 + NumberOfDigits(connectId) + 2 + strlen(typeStr) + 3 + strlen(host) + 2 + NumberOfDigits(port) + 1);
 	sprintf(str, "AT+QIOPEN=1,%d,\"%s\",\"%s\",%d", connectId, typeStr, host, port);
 	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 150000) == NULL) return RET_ERR(-1);
-	char* str2 = (char*)alloca(9 + 2 + 2 + 1);
+	char* str2 = (char*)alloca(9 + NumberOfDigits(connectId) + 2 + 1);
 	sprintf(str2, "+QIOPEN: %d,0", connectId);
 	if (_Module.WaitForResponse(str2, 150000) == NULL) return RET_ERR(-1);
 
@@ -487,7 +529,7 @@ bool WioLTE::SocketSend(int connectId, const byte* data, int dataSize)
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false);
 	if (dataSize > 1460) return RET_ERR(false);
 
-	char* str = (char*)alloca(10 + 2 + 1 + 4 + 1);
+	char* str = (char*)alloca(10 + NumberOfDigits(connectId) + 1 + NumberOfDigits(dataSize) + 1);
 	sprintf(str, "AT+QISEND=%d,%d", connectId, dataSize);
 	_Module.WriteCommand(str);
 	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return RET_ERR(false);
@@ -506,7 +548,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 {
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1);
 
-	char* str2 = (char*)alloca(8 + 2 + 1);
+	char* str2 = (char*)alloca(8 + NumberOfDigits(connectId) + 1);
 	sprintf(str2, "AT+QIRD=%d", connectId);
 	_Module.WriteCommand(str2);
 	const char* parameter;
@@ -557,11 +599,54 @@ bool WioLTE::SocketClose(int connectId)
 {
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false);
 
-	char* str = (char*)alloca(11 + 2 + 1);
+	char* str = (char*)alloca(11 + NumberOfDigits(connectId) + 1);
 	sprintf(str, "AT+QICLOSE=%d", connectId);
 	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 10000) == NULL) return RET_ERR(false);
 
 	return RET_OK(true);
+}
+
+int WioLTE::HttpGet(const char* url, char* data, int dataSize)
+{
+	const char* parameter;
+	ArgumentParser parser;
+	char* str;
+
+	if (!HttpSetUrl(url)) return RET_ERR(-1);
+
+	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPGET", "OK", 500) == NULL) return RET_ERR(-1);
+	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QHTTPGET: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1);
+
+	parser.Parse(parameter);
+	if (parser.Size() < 1) return RET_ERR(-1);
+	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1);
+	int contentLength = parser.Size() >= 3 ? atoi(parser[2]) : -1;
+
+	_Module.WriteCommand("AT+QHTTPREAD");
+	if (_Module.WaitForResponse("CONNECT", 1000) == NULL) return RET_ERR(-1);
+	if (contentLength >= 0) {
+		if (contentLength + 1 > dataSize) return RET_ERR(-1);
+		if (_Module.Read((byte*)data, contentLength, 1000) != contentLength) return RET_ERR(-1);
+		data[contentLength] = '\0';
+		if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(-1);
+	}
+	else {
+		contentLength = 0;
+
+		while (true) {
+			parameter = _Module.WaitForResponse("OK", 1000, "");
+			if (parameter == NULL) return RET_ERR(-1);
+			if (strcmp(parameter, "OK") == 0) break;
+
+			if (contentLength + strlen(parameter) + 1 > dataSize) return RET_ERR(-1);
+			strcpy(&data[contentLength], parameter);
+			contentLength += strlen(parameter);
+		}
+	}
+	if ((parameter = _Module.WaitForResponse(NULL, 1000, "+QHTTPREAD: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1);
+	if (strcmp(parameter, "0") != 0) return RET_ERR(-1);
+
+	return RET_OK(contentLength);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
