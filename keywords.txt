@@ -25,6 +25,7 @@ SocketReceive				KEYWORD2
 SocketClose					KEYWORD2
 
 HttpGet						KEYWORD2
+HttpPost					KEYWORD2
 
 WIOLTE_TCP					LITERAL1
 WIOLTE_UDP					LITERAL1

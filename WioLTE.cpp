@@ -649,4 +649,27 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 	return RET_OK(contentLength);
 }
 
+bool WioLTE::HttpPost(const char* url, char* data)
+{
+	const char* parameter;
+	ArgumentParser parser;
+
+	if (!HttpSetUrl(url)) return RET_ERR(false);
+
+	int dataSize = strlen(data);
+	char* str = (char*)alloca(13 + NumberOfDigits(dataSize) + 1);
+	sprintf(str, "AT+QHTTPPOST=%d", dataSize);
+	_Module.WriteCommand(str);
+	if (_Module.WaitForResponse("CONNECT", 1000) == NULL) return RET_ERR(false);
+	_Module.Write(data);
+	if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(false);
+
+	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QHTTPPOST: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
+	parser.Parse(parameter);
+	if (parser.Size() < 1) return RET_ERR(-1);
+	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1);
+
+	return RET_OK(true);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
