@@ -30,8 +30,6 @@ void setup() {
     SerialUSB.println("### ERROR! ###");
     return;
   }
-
-  SerialUSB.println("### Finish.");
 }
 
 void loop() {

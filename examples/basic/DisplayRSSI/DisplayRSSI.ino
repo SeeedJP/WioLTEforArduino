@@ -24,8 +24,6 @@ void setup() {
     return;
   }
   delay(3000);
-  
-  SerialUSB.println("Finish.");
 }
 
 void loop() {
