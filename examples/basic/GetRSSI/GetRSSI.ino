@@ -27,7 +27,7 @@ void setup() {
 }
 
 void loop() {
-  SerialUSB.println("### Display RSSI.");
+  SerialUSB.println("### Get RSSI.");
   int rssi = Wio.GetReceivedSignalStrength();
   if (rssi == INT_MIN) {
     SerialUSB.println("### ERROR! ###");
