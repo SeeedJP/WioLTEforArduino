@@ -155,6 +155,7 @@ public:
 	bool IsBusy() const;
 	bool TurnOnOrReset();
 
+	int GetPhoneNumber(char* number, int numberSize);
 	int GetReceivedSignalStrength();
 	bool GetTime(struct tm* tim);
 

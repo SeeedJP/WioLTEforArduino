@@ -279,6 +279,30 @@ bool WioLTE::TurnOnOrReset()
 	return RET_OK(true);
 }
 
+int WioLTE::GetPhoneNumber(char* number, int numberSize)
+{
+	const char* parameter;
+	ArgumentParser parser;
+
+	_Module.WriteCommand("AT+CNUM");
+	bool set = false;
+	while (true) {
+		if ((parameter = _Module.WaitForResponse("OK", 500, "+CNUM: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1);
+		if (strcmp(parameter, "OK") == 0) break;
+
+		if (set) continue;
+
+		parser.Parse(parameter);
+		if (parser.Size() < 2) return RET_ERR(-1);
+		if (numberSize < strlen(parser[1]) + 1) RET_ERR(-1);
+		strcpy(number, parser[1]);
+		set = true;
+	}
+	if (!set) RET_OK(0);
+
+	return RET_OK(strlen(number));
+}
+
 int WioLTE::GetReceivedSignalStrength()
 {
 	const char* parameter;

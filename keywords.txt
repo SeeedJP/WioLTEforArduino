@@ -8,6 +8,7 @@ PowerSupplyGrove			KEYWORD2
 IsBusy						KEYWORD2
 TurnOnOrReset				KEYWORD2
 
+GetPhoneNumber				KEYWORD2
 GetReceivedSignalStrength	KEYWORD2
 GetTime						KEYWORD2
 
