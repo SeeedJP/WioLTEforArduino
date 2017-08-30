@@ -30,6 +30,18 @@ GroveコネクターとSTM32F4マイコン、LTEモジュールが載っており、Arduino IDEで素早く
 
 ## 開発環境のセットアップ
 
+### Arduino IDEの確認
+
+Wio LTEのプログラムは、Arduino IDEでプログラミング、コンパイル、書き込みすることができます。
+
+> パソコンにArduino IDEが入っていない場合は、インストールしてください。
+
+Arduino IDEを起動して、ツール > ボード の、Wio Tracker LTE が表示されていることを確認します。
+
+> Wio Tracker LTEが見つからない場合は、Wio Tracker LTEボードの追加が必要です。
+
+![12](img/12.png)
+
 ### Wio LTEのモードとデバイスドライバーの動作確認
 
 Wio LTEのマイコンは、**DFUモード**と**通常モード**の2つのモードがあります。
@@ -50,9 +62,13 @@ Wio LTEのマイコンは、**DFUモード**と**通常モード**の2つのモードがあります。
 
 ![3](img/3.png)
 
-> "STM32 BOOTLOADER"が"ほかのデバイス"配下に表示されている場合は、Zadigツールでデバイスドライバーの変更が必要です。
+> "ほかのデバイス"配下に"STM32 BOOTLOADER"が表示されている場合は、デバイスドライバーのインストールが必要です。
 > 
 > ![8](img/8.png)
+
+> "ユニバーサルシリアルバスコントローラー"配下に"STM Device in DFU Mode"が表示されている場合は、WinUSBデバイスドライバーに切り替えが必要です。
+> 
+> ![10](img/10.png)
 
 #### 通常モード
 
@@ -60,23 +76,11 @@ Wio LTEのマイコンは、**DFUモード**と**通常モード**の2つのモードがあります。
 
 ![4](img/4.png)
 
-> "STMicroelectronics Virtual COM Port"が表示されておらず、"ほかのデバイス"配下に"STM32 Virtual ComPort in FS Mode"と表示されている場合は、Virtual COM Portデバイスドライバーのインストールが必要です。
+> "ほかのデバイス"配下に"STM32 Virtual ComPort in FS Mode"と表示されている場合は、Virtual COM Portデバイスドライバーのインストールが必要です。
 > 
 > ![7](img/7.png)
 
-### Arduino IDEの動作確認
-
-### Wio LTEへプログラム書き込み
-
-### Wio LTEのプログラム実行を確認
-
 ## 補足説明
-
-### Virtual COM Portデバイスドライバーのインストール
-
-1. [STマイクロエレクトロニクスのSTSW-STM32102サイト](http://www.st.com/content/st_com/ja/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-utilities/stsw-stm32102.html)からSTSW-STM32102(en.stsw-stm32102.zip)を入手します。
-1. en.stsw-stm32102.zipを解凍して、VCP_V1.4.0_Setup.exeを実行します。すると、C:\Program Files (x86)\STMicroelectronics\Software\Virtual comport driver にデバイスドライバーのインストールファイルが配置されます。
-1. C:\Program Files (x86)\STMicroelectronics\Software\Virtual comport driver\Win8\dpinst_amd64.exe を実行します。これで、Visual COM Portデバイスドライバーがインストールされます。
 
 ### Arduino IDEのインストール
 
@@ -91,3 +95,17 @@ Wio LTEのマイコンは、**DFUモード**と**通常モード**の2つのモードがあります。
 1. ツール > ボード > ボードマネージャ で、Seeed STM32F4 Boards by Seeed Studio を選択し、インストールをクリックします。
 ![2](img/2.png)
 
+### WinUSBデバイスドライバーに切り替え
+
+1. [Zadigサイト](http://zadig.akeo.ie/)のDownloadにあるZadig 2.3をクリックして、zadig-2.3.exeを入手します。
+1. Wio LTEをDFUモードで接続します。
+1. zadig-2.3.exeを起動します。
+1. Options > List All Devices を選択します。
+1. STM32 BOOTLOADER を選んで、Driver欄の左をSTTub30、右をWinUSBに変更してから、Replace Driverをクリックします。
+![11](img/11.png)
+
+### Virtual COM Portデバイスドライバーのインストール
+
+1. [STマイクロエレクトロニクスのSTSW-STM32102サイト](http://www.st.com/content/st_com/ja/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-utilities/stsw-stm32102.html)からSTSW-STM32102(en.stsw-stm32102.zip)を入手します。
+1. en.stsw-stm32102.zipを解凍して、VCP_V1.4.0_Setup.exeを実行します。すると、C:\Program Files (x86)\STMicroelectronics\Software\Virtual comport driver にデバイスドライバーのインストールファイルが配置されます。
+1. C:\Program Files (x86)\STMicroelectronics\Software\Virtual comport driver\Win8\dpinst_amd64.exe を実行します。これで、Visual COM Portデバイスドライバーがインストールされます。
