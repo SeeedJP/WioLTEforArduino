@@ -28,6 +28,6 @@ GroveコネクターとSTM32F4マイコン、LTEモジュールが載っており、Arduino IDEで素早く
 
 ## 使い方
 
-[wikiページ](wiki)をご参照ください。
+[wikiページ](https://github.com/SeeedJP/WioLTEforArduino/wiki)をご参照ください。
 
 [^1]: application/x-www-form-urlencoded
