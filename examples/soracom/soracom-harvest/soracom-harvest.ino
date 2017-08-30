@@ -1,4 +1,4 @@
-#include <wiolte-driver.h>
+#include <WioLTEforArduino.h>
 #include <stdio.h>
 
 #define INTERVAL  (60000)
