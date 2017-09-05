@@ -389,6 +389,31 @@ bool WioLTE::GetTime(struct tm* tim)
 	return RET_OK(true);
 }
 
+//bool WioLTE::Call(const char* dialNumber)
+//{
+//
+//	char* str = (char*)alloca(3 + strlen(dialNumber) + 1);
+//	sprintf(str, "ATD%s", dialNumber);
+//	_Module.WriteCommand(str);
+//
+//	const char* response;
+//	do {
+//		response = _Module.WaitForResponse(NULL, 5000, "");
+//		if (strcmp(response, "NO DIALTONE") == 0) return RET_ERR(false);
+//		if (strcmp(response, "BUSY"       ) == 0) return RET_ERR(false);
+//		if (strcmp(response, "NO CARRIER" ) == 0) return RET_ERR(false);
+//	} while (strcmp(response, "OK") != 0);
+//
+//	return RET_OK(true);
+//}
+//
+//bool WioLTE::HangUp()
+//{
+//	if (_Module.WriteCommandAndWaitForResponse("ATH", "OK", 90000) == NULL) return RET_ERR(false);
+//
+//	return RET_OK(true);
+//}
+
 bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
 	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500) == NULL) return RET_ERR(false);
@@ -663,6 +688,13 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 	ArgumentParser parser;
 	char* str;
 
+	if (strncmp("https:", url, 6) == 0) {
+		if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "OK", 500) == NULL) return RET_ERR(-1);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "OK", 500) == NULL) return RET_ERR(-1);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "OK", 500) == NULL) return RET_ERR(-1);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(-1);
+	}
+
 	if (!HttpSetUrl(url)) return RET_ERR(-1);
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPGET", "OK", 500) == NULL) return RET_ERR(-1);
@@ -704,6 +736,13 @@ bool WioLTE::HttpPost(const char* url, char* data)
 {
 	const char* parameter;
 	ArgumentParser parser;
+
+	if (strncmp("https:", url, 6) == 0) {
+		if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "OK", 500) == NULL) return RET_ERR(-1);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "OK", 500) == NULL) return RET_ERR(-1);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "OK", 500) == NULL) return RET_ERR(-1);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(-1);
+	}
 
 	if (!HttpSetUrl(url)) return RET_ERR(false);
 

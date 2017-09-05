@@ -166,6 +166,11 @@ public:
 	int GetReceivedSignalStrength();
 	bool GetTime(struct tm* tim);
 
+	//bool Call(const char* dialNumber);
+	//void IsRinging();
+	//void Answer();
+	//bool HangUp();
+
 	bool SendSMS(const char* dialNumber, const char* message);
 	int ReceiveSMS(char* message, int messageSize);
 	bool DeleteReceivedSMS();
