@@ -83,6 +83,7 @@ private:
 			WFR_WITHOUT_DELIM		= 0x01,
 			WFR_START_WITH			= 0x02,
 			WFR_REMOVE_START_WITH	= 0x04,
+			WFR_GET_NULL_STRING		= 0x08,
 		};
 
 	public:

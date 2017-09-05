@@ -141,7 +141,7 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 
 		const char* response = ReadResponse(waitPatternFlag & WFR_WITHOUT_DELIM ? waitPattern : NULL);
 
-		if (response[0] == '\0') continue;
+		if (!(waitPatternFlag & WFR_GET_NULL_STRING) && response[0] == '\0') continue;
 
 		// waitResponse?
 		if (waitResponse != NULL) {

@@ -717,13 +717,14 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 		contentLength = 0;
 
 		while (true) {
-			parameter = _Module.WaitForResponse("OK", 1000, "");
+			parameter = _Module.WaitForResponse("OK", 1000, "", ModuleSerial::WFR_GET_NULL_STRING);
 			if (parameter == NULL) return RET_ERR(-1);
 			if (strcmp(parameter, "OK") == 0) break;
 
-			if (contentLength + strlen(parameter) + 1 > dataSize) return RET_ERR(-1);
+			if (contentLength + strlen(parameter) + 2 + 1 > dataSize) return RET_ERR(-1);
 			strcpy(&data[contentLength], parameter);
-			contentLength += strlen(parameter);
+			strcpy(&data[contentLength + strlen(parameter)], "\r\n");
+			contentLength += strlen(parameter) + 2;
 		}
 	}
 	if ((parameter = _Module.WaitForResponse(NULL, 1000, "+QHTTPREAD: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1);
