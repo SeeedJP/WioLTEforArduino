@@ -7,6 +7,8 @@ PowerSupplyGNSS				KEYWORD2
 PowerSupplyGrove			KEYWORD2
 IsBusy						KEYWORD2
 TurnOnOrReset				KEYWORD2
+Sleep						KEYWORD2
+Wakeup						KEYWORD2
 
 GetPhoneNumber				KEYWORD2
 GetReceivedSignalStrength	KEYWORD2
