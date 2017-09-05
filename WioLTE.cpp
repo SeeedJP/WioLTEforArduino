@@ -211,9 +211,12 @@ void WioLTE::Init()
 	// Status Indication Pins
 	PinModeAndDefault(STATUS_PIN, INPUT);
 
+	// UART Interface
+	PinModeAndDefault(DTR_PIN, OUTPUT, LOW);
+
 	// GPIO Pins
 	PinModeAndDefault(WAKEUP_IN_PIN, OUTPUT, LOW);
-	PinModeAndDefault(WAKEUP_DISABLE_PIN, OUTPUT, HIGH);
+	PinModeAndDefault(W_DISABLE_PIN, OUTPUT, HIGH);
 	//PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
   
 	_Module.Init();
@@ -265,6 +268,8 @@ bool WioLTE::TurnOnOrReset()
 
 	if (_Module.WriteCommandAndWaitForResponse("ATE0", "OK", 500) == NULL) return RET_ERR(false);
 	if (_Module.WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "OK", 500) == NULL) return RET_ERR(false);
+	_Module.WriteCommand("AT+QSCLK=1");
+	if (_Module.WaitForResponse("OK", 500, "ERROR") == NULL) return RET_ERR(false);
 
 	sw.Start();
 	while (true) {
@@ -275,6 +280,28 @@ bool WioLTE::TurnOnOrReset()
 		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false);
 		delay(POLLING_INTERVAL);
 	}
+
+	return RET_OK(true);
+}
+
+void WioLTE::Sleep()
+{
+	digitalWrite(DTR_PIN, HIGH);
+}
+
+bool WioLTE::Wakeup()
+{
+	const char* parameter;
+
+	digitalWrite(DTR_PIN, LOW);
+
+	Stopwatch sw;
+	sw.Start();
+	while (_Module.WriteCommandAndWaitForResponse("AT", "OK", 500) == NULL) {
+		DEBUG_PRINT(".");
+		if (sw.ElapsedMilliseconds() >= 2000) return RET_ERR(false);
+	}
+	DEBUG_PRINTLN("");
 
 	return RET_OK(true);
 }
