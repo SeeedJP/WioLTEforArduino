@@ -8,6 +8,11 @@
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
 #define WIOLTE_UDP	(WioLTE::SOCKET_UDP)
 
+#define WIOLTE_D38	(WioLTE::D38)
+#define WIOLTE_D39	(WioLTE::D39)
+#define WIOLTE_D20	(WioLTE::D20)
+#define WIOLTE_D19	(WioLTE::D19)
+
 class WioLTE
 {
 	/////////////////////////////////////////////////////////////////////
@@ -129,6 +134,15 @@ private:
 	static const int AP_READY_PIN = 33;			// PC1
 
 	static const int RGB_LED_PIN = 17;			// PB1
+
+public:
+	// D38 connector
+	static const int D38 = 38;
+	static const int D39 = 39;
+
+	// D20 connector
+	static const int D20 = 20;
+	static const int D19 = 19;
 
 private:
 	ModuleSerial _Module;
