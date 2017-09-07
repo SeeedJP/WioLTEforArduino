@@ -12,7 +12,7 @@ void loop()
   float temp;
   float humi;
 
-  if (!TemperatureAndHumidityRead(SENSOR_PIN, &temp, &humi)) {
+  if (!TemperatureAndHumidityRead(&temp, &humi)) {
     SerialUSB.println("ERROR!");
     goto err;
   }
@@ -31,18 +31,21 @@ err:
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 
+int TemperatureAndHumidityPin;
+
 void TemperatureAndHumidityBegin(int pin)
 {
-  DHT11Init(pin);
+  TemperatureAndHumidityPin = pin;
+  DHT11Init(TemperatureAndHumidityPin);
 }
 
-bool TemperatureAndHumidityRead(int pin, float* temperature, float* humidity)
+bool TemperatureAndHumidityRead(float* temperature, float* humidity)
 {
   byte data[5];
   
-  DHT11Start(pin);
-  for (int i = 0; i < 5; i++) data[i] = DHT11ReadByte(pin);
-  DHT11Finish(pin);
+  DHT11Start(TemperatureAndHumidityPin);
+  for (int i = 0; i < 5; i++) data[i] = DHT11ReadByte(TemperatureAndHumidityPin);
+  DHT11Finish(TemperatureAndHumidityPin);
   
   if(!DHT11Check(data, sizeof (data))) return false;
   if (data[1] >= 10) return false;
