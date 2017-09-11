@@ -733,7 +733,7 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 	return RET_OK(contentLength);
 }
 
-bool WioLTE::HttpPost(const char* url, char* data)
+bool WioLTE::HttpPost(const char* url, const char* data)
 {
 	const char* parameter;
 	ArgumentParser parser;
