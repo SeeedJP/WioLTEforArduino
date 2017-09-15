@@ -59,7 +59,7 @@ private:
 private:
 	class ArgumentParser
 	{
-	public:
+	private:
 		std::vector< std::vector<char> > _Arguments;
 
 	public:
@@ -67,6 +67,26 @@ private:
 		void Parse(const char* str);
 		int Size() const;
 		const char* operator[](int index) const;
+
+	};
+
+	/////////////////////////////////////////////////////////////////////
+	// StringBuilder
+
+private:
+	class StringBuilder
+	{
+	private:
+		std::vector<char> _Buffer;
+
+	public:
+		StringBuilder();
+		void Clear();
+		int Length() const;
+		const char* GetString() const;
+		void Write(const char* str);
+		void Write(const char* str, int length);
+		bool WriteFormat(const char* format, ...);
 
 	};
 

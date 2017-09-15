@@ -28,6 +28,9 @@ static void DebugPrintln(const char* str)
 #define CONNECT_ID_NUM				(12)
 #define POLLING_INTERVAL			(100)
 
+#define HTTP_POST_USER_AGENT		"QUECTEL_MODULE"
+#define HTTP_POST_CONTENT_TYPE		"application/json"
+
 #define LINEAR_SCALE(val, inMin, inMax, outMin, outMax)	(((val) - (inMin)) / ((inMax) - (inMin)) * ((outMax) - (outMin)) + (outMin))
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -82,6 +85,29 @@ static int NumberOfDigits(int value)
 	} while (value > 0);
 
 	return digits;
+}
+
+static bool SplitUrl(const char* url, const char** host, int* hostLength, const char** uri, int* uriLength)
+{
+	if (strncmp(url, "http://", 7) == 0) {
+		*host = &url[7];
+	}
+	else if (strncmp(url, "https://", 8) == 0) {
+		*host = &url[8];
+	}
+	else {
+		return false;
+	}
+
+	const char* ptr;
+	for (ptr = *host; *ptr != '\0'; ptr++) {
+		if (*ptr == '/') break;
+	}
+	*hostLength = ptr - *host;
+	*uri = ptr;
+	*uriLength = strlen(ptr);
+
+	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -695,6 +721,8 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(-1);
 	}
 
+	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"requestheader\",0", "OK", 500) == NULL) return RET_ERR(-1);
+
 	if (!HttpSetUrl(url)) return RET_ERR(-1);
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPGET", "OK", 500) == NULL) return RET_ERR(-1);
@@ -745,13 +773,42 @@ bool WioLTE::HttpPost(const char* url, const char* data)
 		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(-1);
 	}
 
+	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"requestheader\",1", "OK", 500) == NULL) return RET_ERR(-1);
+
 	if (!HttpSetUrl(url)) return RET_ERR(false);
 
+	const char* host;
+	int hostLength;
+	const char* uri;
+	int uriLength;
+	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false);
+
+
+	StringBuilder header;
+	header.Write("POST ");
+	if (uriLength <= 0) {
+		header.Write("/");
+	}
+	else {
+		header.Write(uri, uriLength);
+	}
+	header.Write(" HTTP/1.1\r\n");
+	header.WriteFormat("Host: ");
+	header.Write(host, hostLength);
+	header.WriteFormat("\r\n");
+	header.Write("Accept: */*\r\n");
+	header.Write("User-Agent: "HTTP_POST_USER_AGENT"\r\n");
+	header.Write("Connection: Keep-Alive\r\n");
+	header.Write("Content-Type: "HTTP_POST_CONTENT_TYPE"\r\n");
+	if (!header.WriteFormat("Content-Length: %d\r\n", strlen(data))) return RET_ERR(false);
+	header.Write("\r\n");
+
 	int dataSize = strlen(data);
-	char* str = (char*)alloca(13 + NumberOfDigits(dataSize) + 1);
-	sprintf(str, "AT+QHTTPPOST=%d", dataSize);
+	char* str = (char*)alloca(13 + NumberOfDigits(header.Length() + dataSize) + 1);
+	sprintf(str, "AT+QHTTPPOST=%d", header.Length() + dataSize);
 	_Module.WriteCommand(str);
 	if (_Module.WaitForResponse("CONNECT", 60000) == NULL) return RET_ERR(false);
+	_Module.Write(header.GetString());
 	_Module.Write(data);
 	if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(false);
 
