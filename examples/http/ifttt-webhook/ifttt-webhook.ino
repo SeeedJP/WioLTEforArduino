@@ -42,16 +42,19 @@ void setup() {
 
 void loop() {
   char data[100];
+  int status;
   
   SerialUSB.println("### Post.");
   sprintf(data, "{\"value1\":\"uptime %lu\"}", millis() / 1000);
   SerialUSB.print("Post:");
   SerialUSB.print(data);
   SerialUSB.println("");
-  if (!Wio.HttpPost(WEBHOOK_URL, data)) {
+  if (!Wio.HttpPost(WEBHOOK_URL, data, &status)) {
     SerialUSB.println("### ERROR! ###");
     goto err;
   }
+  SerialUSB.print("Status:");
+  SerialUSB.println(status);
   
 err:
   SerialUSB.println("### Wait.");

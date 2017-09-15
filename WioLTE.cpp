@@ -760,7 +760,7 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 	return RET_OK(contentLength);
 }
 
-bool WioLTE::HttpPost(const char* url, const char* data)
+bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 {
 	const char* parameter;
 	ArgumentParser parser;
@@ -814,6 +814,12 @@ bool WioLTE::HttpPost(const char* url, const char* data)
 	parser.Parse(parameter);
 	if (parser.Size() < 1) return RET_ERR(-1);
 	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1);
+	if (parser.Size() < 2) {
+		*responseCode = -1;
+	}
+	else {
+		*responseCode = atoi(parser[1]);
+	}
 
 	return RET_OK(true);
 }
