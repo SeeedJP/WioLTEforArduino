@@ -751,7 +751,7 @@ bool WioLTE::HttpPost(const char* url, const char* data)
 	char* str = (char*)alloca(13 + NumberOfDigits(dataSize) + 1);
 	sprintf(str, "AT+QHTTPPOST=%d", dataSize);
 	_Module.WriteCommand(str);
-	if (_Module.WaitForResponse("CONNECT", 1000) == NULL) return RET_ERR(false);
+	if (_Module.WaitForResponse("CONNECT", 60000) == NULL) return RET_ERR(false);
 	_Module.Write(data);
 	if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(false);
 
