@@ -207,10 +207,9 @@ int WioLTE::GetFirstIndexOfReceivedSMS()
 
 bool WioLTE::HttpSetUrl(const char* url)
 {
-	int urlSize = strlen(url);
-	char* str = (char*)alloca(12 + NumberOfDigits(urlSize) + 1);
-	sprintf(str, "AT+QHTTPURL=%d", urlSize);
-	_Module.WriteCommand(str);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QHTTPURL=%d", strlen(url))) return false;
+	_Module.WriteCommand(str.GetString());
 	if (_Module.WaitForResponse("CONNECT", 500) == NULL) return false;
 
 	_Module.Write(url);
@@ -444,9 +443,9 @@ bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
 	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500) == NULL) return RET_ERR(false);
 
-	char* str = (char*)alloca(9 + strlen(dialNumber) + 1 + 1);
-	sprintf(str, "AT+CMGS=\"%s\"", dialNumber);
-	_Module.WriteCommand(str);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+CMGS=\"%s\"", dialNumber)) return RET_ERR(false);
+	_Module.WriteCommand(str.GetString());
 	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return RET_ERR(false);
 	_Module.Write(message);
 	_Module.Write("\x1a");
@@ -466,9 +465,9 @@ int WioLTE::ReceiveSMS(char* message, int messageSize)
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return RET_ERR(-1);
 
-	char* str = (char*)alloca(8 + NumberOfDigits(messageIndex) + 1);
-	sprintf(str, "AT+CMGR=%d", messageIndex);
-	_Module.WriteCommand(str);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+CMGR=%d", messageIndex)) return RET_ERR(-1);
+	_Module.WriteCommand(str.GetString());
 
 	parameter = _Module.WaitForResponse(NULL, 500, "+CMGR: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
 	if (parameter == NULL) return RET_ERR(-1);
@@ -525,9 +524,9 @@ bool WioLTE::DeleteReceivedSMS()
 	if (messageIndex == -2) return RET_ERR(false);
 	if (messageIndex < 0) return RET_ERR(false);
 
-	char* str = (char*)alloca(8 + NumberOfDigits(messageIndex) + 1);
-	sprintf(str, "AT+CMGD=%d", messageIndex);
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return RET_ERR(false);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+CMGD=%d", messageIndex)) return RET_ERR(false);
+	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false);
 
 	return RET_OK(true);
 }
@@ -551,9 +550,9 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (strcmp(parameter, "0,1") != 0) return RET_ERR(false);
 	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
 
-	char* str = (char*)alloca(15 + strlen(accessPointName) + 3 + strlen(userName) + 3 + strlen(password) + 3 + 1);
-	sprintf(str, "AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password);
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return RET_ERR(false);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false);
+	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false);
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000) == NULL) return RET_ERR(false);
 
@@ -566,9 +565,9 @@ bool WioLTE::SyncTime(const char* host)
 {
 	const char* parameter;
 
-	char* str = (char*)alloca(11 + strlen(host) + 1 + 1);
-	sprintf(str, "AT+QNTP=1,\"%s\"", host);
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 500) == NULL) return RET_ERR(false);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QNTP=1,\"%s\"", host)) return RET_ERR(false);
+	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false);
 	if ((parameter = _Module.WaitForResponse(NULL, 125000, "+QNTP: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
 
 	return RET_OK(true);
@@ -616,12 +615,12 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 	}
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1);
 
-	char* str = (char*)alloca(12 + NumberOfDigits(connectId) + 2 + strlen(typeStr) + 3 + strlen(host) + 2 + NumberOfDigits(port) + 1);
-	sprintf(str, "AT+QIOPEN=1,%d,\"%s\",\"%s\",%d", connectId, typeStr, host, port);
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 150000) == NULL) return RET_ERR(-1);
-	char* str2 = (char*)alloca(9 + NumberOfDigits(connectId) + 2 + 1);
-	sprintf(str2, "+QIOPEN: %d,0", connectId);
-	if (_Module.WaitForResponse(str2, 150000) == NULL) return RET_ERR(-1);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QIOPEN=1,%d,\"%s\",\"%s\",%d", connectId, typeStr, host, port)) return RET_ERR(-1);
+	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 150000) == NULL) return RET_ERR(-1);
+	str.Clear();
+	if (!str.WriteFormat("+QIOPEN: %d,0", connectId)) return RET_ERR(-1);
+	if (_Module.WaitForResponse(str.GetString(), 150000) == NULL) return RET_ERR(-1);
 
 	return RET_OK(connectId);
 }
@@ -631,9 +630,9 @@ bool WioLTE::SocketSend(int connectId, const byte* data, int dataSize)
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false);
 	if (dataSize > 1460) return RET_ERR(false);
 
-	char* str = (char*)alloca(10 + NumberOfDigits(connectId) + 1 + NumberOfDigits(dataSize) + 1);
-	sprintf(str, "AT+QISEND=%d,%d", connectId, dataSize);
-	_Module.WriteCommand(str);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QISEND=%d,%d", connectId, dataSize)) return RET_ERR(false);
+	_Module.WriteCommand(str.GetString());
 	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return RET_ERR(false);
 	_Module.Write(data, dataSize);
 	if (_Module.WaitForResponse("SEND OK", 5000) == NULL) return RET_ERR(false);
@@ -650,9 +649,9 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 {
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1);
 
-	char* str2 = (char*)alloca(8 + NumberOfDigits(connectId) + 1);
-	sprintf(str2, "AT+QIRD=%d", connectId);
-	_Module.WriteCommand(str2);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QIRD=%d", connectId)) return RET_ERR(-1);
+	_Module.WriteCommand(str.GetString());
 	const char* parameter;
 	if ((parameter = _Module.WaitForResponse(NULL, 500, "+QIRD: ", ModuleSerial::WFR_START_WITH)) == NULL) return RET_ERR(-1);
 	int dataLength = atoi(&parameter[7]);
@@ -701,9 +700,9 @@ bool WioLTE::SocketClose(int connectId)
 {
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false);
 
-	char* str = (char*)alloca(11 + NumberOfDigits(connectId) + 1);
-	sprintf(str, "AT+QICLOSE=%d", connectId);
-	if (_Module.WriteCommandAndWaitForResponse(str, "OK", 10000) == NULL) return RET_ERR(false);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QICLOSE=%d", connectId)) return RET_ERR(false);
+	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 10000) == NULL) return RET_ERR(false);
 
 	return RET_OK(true);
 }
@@ -793,9 +792,9 @@ bool WioLTE::HttpPost(const char* url, const char* data)
 		header.Write(uri, uriLength);
 	}
 	header.Write(" HTTP/1.1\r\n");
-	header.WriteFormat("Host: ");
+	header.Write("Host: ");
 	header.Write(host, hostLength);
-	header.WriteFormat("\r\n");
+	header.Write("\r\n");
 	header.Write("Accept: */*\r\n");
 	header.Write("User-Agent: "HTTP_POST_USER_AGENT"\r\n");
 	header.Write("Connection: Keep-Alive\r\n");
@@ -803,10 +802,9 @@ bool WioLTE::HttpPost(const char* url, const char* data)
 	if (!header.WriteFormat("Content-Length: %d\r\n", strlen(data))) return RET_ERR(false);
 	header.Write("\r\n");
 
-	int dataSize = strlen(data);
-	char* str = (char*)alloca(13 + NumberOfDigits(header.Length() + dataSize) + 1);
-	sprintf(str, "AT+QHTTPPOST=%d", header.Length() + dataSize);
-	_Module.WriteCommand(str);
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QHTTPPOST=%d", header.Length() + strlen(data))) return RET_ERR(false);
+	_Module.WriteCommand(str.GetString());
 	if (_Module.WaitForResponse("CONNECT", 60000) == NULL) return RET_ERR(false);
 	_Module.Write(header.GetString());
 	_Module.Write(data);
