@@ -12,6 +12,10 @@
 #define WIOLTE_D39	(WioLTE::D39)
 #define WIOLTE_D20	(WioLTE::D20)
 #define WIOLTE_D19	(WioLTE::D19)
+#define WIOLTE_A6	(WioLTE::A6)
+#define WIOLTE_A7	(WioLTE::A7)
+#define WIOLTE_A4	(WioLTE::A4)
+#define WIOLTE_A5	(WioLTE::A5)
 
 class WioLTE
 {
@@ -163,6 +167,14 @@ public:
 	// D20 connector
 	static const int D20 = 20;
 	static const int D19 = 19;
+
+	// A6 connector
+	static const int A6 = 6;
+	static const int A7 = 7;
+
+	// A4 connector
+	static const int A4 = 4;
+	static const int A5 = 5;
 
 private:
 	ModuleSerial _Module;
