@@ -534,21 +534,53 @@ bool WioLTE::DeleteReceivedSMS()
 bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password)
 {
 	const char* parameter;
+	ArgumentParser parser;
+	Stopwatch sw;
 
-	_Module.WriteCommand("AT+CREG?");
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
-	if (strcmp(parameter, "0,1") != 0 && strcmp(parameter, "0,3") != 0) return RET_ERR(false);
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+	sw.Start();
+	while (true) {
+		_Module.WriteCommand("AT+CREG?");
+		if ((parameter = _Module.WaitForResponse(NULL, 500, "+CREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) continue;
+		parser.Parse(parameter);
+		if (parser.Size() < 2) return RET_ERR(false);
+		int resultCode = atoi(parser[0]);
+		int status = atoi(parser[1]);
+		if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+		if (status == 0) return RET_ERR(false);
+		if (status == 1 || status == 5) break;
 
-	_Module.WriteCommand("AT+CGREG?");
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CGREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
-	if (strcmp(parameter, "0,1") != 0) return RET_ERR(false);
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+		if (sw.ElapsedMilliseconds() >= 60000) return RET_ERR(false);
+	}
 
-	_Module.WriteCommand("AT+CEREG?");
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CEREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
-	if (strcmp(parameter, "0,1") != 0) return RET_ERR(false);
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+	sw.Start();
+	while (true) {
+		_Module.WriteCommand("AT+CGREG?");
+		if ((parameter = _Module.WaitForResponse(NULL, 500, "+CGREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
+		parser.Parse(parameter);
+		if (parser.Size() < 2) return RET_ERR(false);
+		int resultCode = atoi(parser[0]);
+		int status = atoi(parser[1]);
+		if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+		if (status == 0) return RET_ERR(false);
+		if (status == 1 || status == 5) break;
+
+		if (sw.ElapsedMilliseconds() >= 60000) return RET_ERR(false);
+	}
+
+	sw.Start();
+	while (true) {
+		_Module.WriteCommand("AT+CEREG?");
+		if ((parameter = _Module.WaitForResponse(NULL, 500, "+CEREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
+		parser.Parse(parameter);
+		if (parser.Size() < 2) return RET_ERR(false);
+		int resultCode = atoi(parser[0]);
+		int status = atoi(parser[1]);
+		if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+		if (status == 0) return RET_ERR(false);
+		if (status == 1 || status == 5) break;
+
+		if (sw.ElapsedMilliseconds() >= 60000) return RET_ERR(false);
+	}
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false);
