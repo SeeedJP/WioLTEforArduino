@@ -228,6 +228,9 @@ void WioLTE::Init()
 	PinModeAndDefault(MODULE_PWR_PIN, OUTPUT, LOW);
 	PinModeAndDefault(ANT_PWR_PIN, OUTPUT, LOW);
 	PinModeAndDefault(ENABLE_VCCB_PIN, OUTPUT, LOW);
+#ifdef WIOLTE_TYPE_JP_V12
+	PinModeAndDefault(RGB_LED_PWR_PIN, OUTPUT, HIGH);
+#endif
 
 	// Turn on/off Pins
 	PinModeAndDefault(PWR_KEY_PIN, OUTPUT, LOW);
