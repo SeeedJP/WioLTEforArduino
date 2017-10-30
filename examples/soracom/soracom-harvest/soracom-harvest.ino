@@ -24,7 +24,7 @@ void setup() {
     return;
   }
 
-  SerialUSB.println("### Connect the \"soracom.io\".");
+  SerialUSB.println("### Connecting to \"soracom.io\".");
   delay(5000);
   if (!Wio.Activate("soracom.io", "sora", "sora")) {
     SerialUSB.println("### ERROR! ###");

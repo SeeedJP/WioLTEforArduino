@@ -32,7 +32,7 @@ void setup() {
     return;
   }
 
-  SerialUSB.println("### Connect the \""APN"\".");
+  SerialUSB.println("### Connecting to \""APN"\".");
   delay(5000);
   if (!Wio.Activate(APN, USERNAME, PASSWORD)) {
     SerialUSB.println("### ERROR! ###");
