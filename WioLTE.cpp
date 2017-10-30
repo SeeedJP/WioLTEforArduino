@@ -394,14 +394,14 @@ bool WioLTE::GetTime(struct tm* tim)
 	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CCLK: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
 	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
 
-	if (strlen(parameter) != 19) return RET_ERR(false);
+	if (strlen(parameter) != 22) return RET_ERR(false);
 	if (parameter[0] != '"') return RET_ERR(false);
 	if (parameter[3] != '/') return RET_ERR(false);
 	if (parameter[6] != '/') return RET_ERR(false);
 	if (parameter[9] != ',') return RET_ERR(false);
 	if (parameter[12] != ':') return RET_ERR(false);
 	if (parameter[15] != ':') return RET_ERR(false);
-	if (parameter[18] != '"') return RET_ERR(false);
+	if (parameter[21] != '"') return RET_ERR(false);
 
 	int yearOffset = atoi(&parameter[1]);
 	tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset - 1900;
