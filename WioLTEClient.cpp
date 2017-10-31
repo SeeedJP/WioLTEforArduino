@@ -1,27 +1,41 @@
 #include <Arduino.h>
 #include "WioLTEClient.h"
 
+#define RECEIVE_MAX_LENGTH	(1500)
+
+#define CONNECT_SUCCESS				(1)
+#define CONNECT_TIMED_OUT			(-1)
+#define CONNECT_INVALID_SERVER		(-2)
+#define CONNECT_TRUNCATED			(-3)
+#define CONNECT_INVALID_RESPONSE	(-4)
+
 WioLTEClient::WioLTEClient(WioLTE* wio)
 {
 	_Wio = wio;
 	_ConnectId = -1;
+	_ReceiveBuffer = new byte[RECEIVE_MAX_LENGTH];
+}
+
+WioLTEClient::~WioLTEClient()
+{
+	delete _ReceiveBuffer;
 }
 
 int WioLTEClient::connect(IPAddress ip, uint16_t port)
 {
-	return -2;	// INVALID_SERVER
+	// Not implemented.
+	return CONNECT_INVALID_SERVER;
 }
 
-int WioLTEClient::connect(const char *host, uint16_t port)
+int WioLTEClient::connect(const char* host, uint16_t port)
 {
-	if (connected()) return -4;	// INVALID_RESPONSE
+	if (connected()) return CONNECT_INVALID_RESPONSE;	// Already connected.
 
 	int connectId = _Wio->SocketOpen(host, port, WioLTE::SOCKET_TCP);
-	if (connectId < 0) return -2;	// INVALID_SERVER
-
+	if (connectId < 0) return CONNECT_INVALID_SERVER;
 	_ConnectId = connectId;
 
-	return 1;	// SUCCESS
+	return CONNECT_SUCCESS;
 }
 
 size_t WioLTEClient::write(uint8_t data)
@@ -33,7 +47,7 @@ size_t WioLTEClient::write(uint8_t data)
 	return 1;
 }
 
-size_t WioLTEClient::write(const uint8_t *buf, size_t size)
+size_t WioLTEClient::write(const uint8_t* buf, size_t size)
 {
 	if (!connected()) return 0;
 
@@ -46,16 +60,15 @@ int WioLTEClient::available()
 {
 	if (!connected()) return 0;
 
-	byte data[1500];
-	int dataSize = _Wio->SocketReceive(_ConnectId, data, sizeof (data));
-	for (int i = 0; i < dataSize; i++) _ReceiveQueue.push(data[i]);
+	int receiveSize = _Wio->SocketReceive(_ConnectId, _ReceiveBuffer, RECEIVE_MAX_LENGTH);
+	for (int i = 0; i < receiveSize; i++) _ReceiveQueue.push(_ReceiveBuffer[i]);
 
 	return _ReceiveQueue.size();
 }
 
 int WioLTEClient::read()
 {
-	if (!connected()) return 0;
+	if (!connected()) return -1;
 
 	int actualSize = available();
 	if (actualSize <= 0) return -1;	// None is available.
@@ -66,12 +79,12 @@ int WioLTEClient::read()
 	return data;
 }
 
-int WioLTEClient::read(uint8_t *buf, size_t size)
+int WioLTEClient::read(uint8_t* buf, size_t size)
 {
 	if (!connected()) return 0;
 
 	int actualSize = available();
-	if (actualSize <= 0) return -1;	// None is available.
+	if (actualSize <= 0) return 0;	// None is available.
 
 	int popSize = actualSize <= size ? actualSize : size;
 	for (int i = 0; i < popSize; i++) {
@@ -113,6 +126,5 @@ uint8_t WioLTEClient::connected()
 
 WioLTEClient::operator bool()
 {
-	// TODO
-	return false;
+	return _ConnectId >= 0 ? true : false;
 }
