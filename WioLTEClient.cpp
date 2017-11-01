@@ -23,8 +23,14 @@ WioLTEClient::~WioLTEClient()
 
 int WioLTEClient::connect(IPAddress ip, uint16_t port)
 {
-	// Not implemented.
-	return CONNECT_INVALID_SERVER;
+	if (connected()) return CONNECT_INVALID_RESPONSE;	// Already connected.
+
+	String ipStr = ip.toString();
+	int connectId = _Wio->SocketOpen(ipStr.c_str(), port, WioLTE::SOCKET_TCP);
+	if (connectId < 0) return CONNECT_INVALID_SERVER;
+	_ConnectId = connectId;
+
+	return CONNECT_SUCCESS;
 }
 
 int WioLTEClient::connect(const char* host, uint16_t port)
