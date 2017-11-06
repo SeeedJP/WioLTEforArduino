@@ -110,6 +110,30 @@ static bool SplitUrl(const char* url, const char** host, int* hostLength, const 
 	return true;
 }
 
+static bool SmAddressFieldToString(const byte* addressField, char* str, int strSize)
+{
+	byte addressLength = addressField[0];
+	byte typeOfAddress = addressField[1];
+	const byte* addressValue = &addressField[2];
+
+	if (addressLength + 1 > strSize) return false;
+
+	for (int i = 0; i < addressLength; i++)
+	{
+		if (i % 2 == 0)
+		{
+			str[i] = '0' + (addressValue[i / 2] & 0x0f);
+		}
+		else
+		{
+			str[i] = '0' + (addressValue[i / 2] >> 4);
+		}
+	}
+	str[addressLength] = '\0';
+
+	return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // WioLTE
 
@@ -457,7 +481,7 @@ bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 	return RET_OK(true);
 }
 
-int WioLTE::ReceiveSMS(char* message, int messageSize)
+int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dialNumberSize)
 {
 	const char* parameter;
 	const char* hex;
@@ -502,6 +526,11 @@ int WioLTE::ReceiveSMS(char* message, int messageSize)
 	if (tpUdl >= dataEnd) return RET_ERR(-1);
 	byte* tpUd = tpUdl + 1;
 	if (tpUd >= dataEnd) return RET_ERR(-1);
+
+	if (dialNumber != NULL && dialNumberSize >= 1)
+	{
+		if (!SmAddressFieldToString(tpOaSize, dialNumber, dialNumberSize)) return RET_ERR(-1);
+	}
 
 	if (messageSize < *tpUdl + 1) return RET_ERR(-1);
 	for (int i = 0; i < *tpUdl; i++) {

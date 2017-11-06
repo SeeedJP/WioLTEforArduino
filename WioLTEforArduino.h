@@ -245,7 +245,7 @@ public:
 	//bool HangUp();
 
 	bool SendSMS(const char* dialNumber, const char* message);
-	int ReceiveSMS(char* message, int messageSize);
+	int ReceiveSMS(char* message, int messageSize, char* dialNumber = NULL, int dialNumberSize = 0);
 	bool DeleteReceivedSMS();
 
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
