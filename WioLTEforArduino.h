@@ -15,8 +15,24 @@
 #define WIOLTE_D19	(WioLTE::D19)
 #define WIOLTE_A6	(WioLTE::A6)
 #define WIOLTE_A7	(WioLTE::A7)
-#define WIOLTE_A4	(WioLTE::A4)
-#define WIOLTE_A5	(WioLTE::A5)
+#define WIOLTE_A4	(WioLTE::A4)	// DAC1
+#define WIOLTE_A5	(WioLTE::A5)	// DAC2
+
+class WioLTEDac
+{
+private:
+	WioLTEDac();
+
+public:
+	enum DACChannel
+	{
+		DAC1 = 0x01,
+		DAC2 = 0x02
+	};
+
+	static void Init(const DACChannel enableChannels);
+	static void Write(const DACChannel channel, const uint16_t value);
+};
 
 class WioLTE
 {
