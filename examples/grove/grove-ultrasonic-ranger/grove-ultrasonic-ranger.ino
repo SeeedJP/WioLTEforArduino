@@ -1,5 +1,5 @@
 #include <WioLTEforArduino.h>
-#include <Ultrasonic.h>			// https://github.com/matsujirushi/Grove_Ultrasonic_Ranger
+#include <Ultrasonic.h>			// https://github.com/Seeed-Studio/Grove_Ultrasonic_Ranger
 
 #define ULTRASONIC_PIN  (WIOLTE_D38)
 #define INTERVAL        (100)
