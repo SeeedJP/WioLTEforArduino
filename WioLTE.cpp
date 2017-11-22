@@ -594,7 +594,7 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 		if (status == 0) return RET_ERR(false);
 		if (status == 1 || status == 5) break;
 
-		if (sw.ElapsedMilliseconds() >= 60000) return RET_ERR(false);
+		if (sw.ElapsedMilliseconds() >= 120000) return RET_ERR(false);
 	}
 
 	// for debug.
