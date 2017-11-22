@@ -42,9 +42,9 @@ void setup() {
 
 void loop() {
   char data[100];
+  int connectId;
 
 #ifdef SENSOR_PIN
-  int connectId;
   float temp;
   float humi;
 
