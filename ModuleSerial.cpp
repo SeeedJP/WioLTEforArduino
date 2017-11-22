@@ -14,6 +14,11 @@ static void DebugPrint(const char* str)
 static void DebugPrintln(const char* str)
 {
 	DebugPrint(str);
+	DebugPrint(" (");
+	char str2[100];
+	sprintf(str2, "%lu", (unsigned long)millis());
+	DebugPrint(str2);
+	DebugPrint(")");
 	DebugPrint("\r\n");
 }
 #else
