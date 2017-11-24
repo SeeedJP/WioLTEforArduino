@@ -53,7 +53,7 @@ void loop() {
     goto err;
   }
 
-  SerialUSB.print("Current humdity = ");
+  SerialUSB.print("Current humidity = ");
   SerialUSB.print(humi);
   SerialUSB.print("%  ");
   SerialUSB.print("temperature = ");
@@ -104,6 +104,8 @@ err:
   delay(INTERVAL);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+//
 
 #ifdef SENSOR_PIN
 
@@ -198,5 +200,6 @@ bool DHT11Check(const byte* data, int dataSize)
   return data[dataSize - 1] == sum;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
 
 #endif

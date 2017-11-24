@@ -17,7 +17,7 @@ void loop()
     goto err;
   }
 
-  SerialUSB.print("Current humdity = ");
+  SerialUSB.print("Current humidity = ");
   SerialUSB.print(humi);
   SerialUSB.print("%  ");
   SerialUSB.print("temperature = ");
