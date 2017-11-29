@@ -1,6 +1,6 @@
 #include <WioLTEforArduino.h>
 #include <WioLTEClient.h>
-#include <PubSubClient.h>
+#include <PubSubClient.h>		// https://github.com/knolleary/pubsubclient
 #include <stdio.h>
 
 #define APN               "soracom.io"
