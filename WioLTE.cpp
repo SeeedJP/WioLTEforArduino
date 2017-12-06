@@ -625,6 +625,24 @@ bool WioLTE::SyncTime(const char* host)
 	return RET_OK(true);
 }
 
+bool WioLTE::GetLocation(double* longitude, double* latitude)
+{
+	const char* parameter;
+	ArgumentParser parser;
+
+	if (_Module.WriteCommandAndWaitForResponse("AT+QLOCCFG=\"contextid\",1", "OK", 500) == NULL) return RET_ERR(false);
+
+	_Module.WriteCommand("AT+QCELLLOC");
+	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QCELLLOC: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false);
+	parser.Parse(parameter);
+	if (parser.Size() != 2) return RET_ERR(false);
+	*longitude = atof(parser[0]);
+	*latitude = atof(parser[1]);
+	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false);
+
+	return RET_OK(true);
+}
+
 int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 {
 	if (host == NULL || host[0] == '\0') return RET_ERR(-1);

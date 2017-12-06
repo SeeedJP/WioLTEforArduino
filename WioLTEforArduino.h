@@ -251,6 +251,7 @@ public:
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
 
 	bool SyncTime(const char* host);
+	bool GetLocation(double* longitude, double* latitude);
 
 	int SocketOpen(const char* host, int port, SocketType type);
 	bool SocketSend(int connectId, const byte* data, int dataSize);
