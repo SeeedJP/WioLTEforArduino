@@ -232,6 +232,7 @@ public:
 	void PowerSupplyGrove(bool on);
 	bool IsBusy() const;
 	bool TurnOnOrReset();
+	bool TurnOff();
 	void Sleep();
 	bool Wakeup();
 

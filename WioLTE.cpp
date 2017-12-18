@@ -336,6 +336,14 @@ bool WioLTE::TurnOnOrReset()
 	return RET_OK(true);
 }
 
+bool WioLTE::TurnOff()
+{
+	if (_Module.WriteCommandAndWaitForResponse("AT+QPOWD", "OK", 500) == NULL) return RET_ERR(false);
+	if (_Module.WaitForResponse("POWERED DOWN", 60000) == NULL) return RET_ERR(false);
+
+	return RET_OK(true);
+}
+
 void WioLTE::Sleep()
 {
 	digitalWrite(DTR_PIN, HIGH);
