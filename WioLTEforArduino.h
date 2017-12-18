@@ -143,7 +143,7 @@ private:
 	// WioLTE
 
 private:
-#if defined WIOLTE_TYPE_JP_V11
+#if defined WIO_LTE_SCHEMATIC_A
 	static const int MODULE_PWR_PIN = 18;		// PB2
 	static const int ANT_PWR_PIN = 28;			// PB12
 	static const int ENABLE_VCCB_PIN = 26;		// PB10    
@@ -161,7 +161,7 @@ private:
 
 	static const int RGB_LED_PIN = 17;			// PB1
 
-#elif defined WIOLTE_TYPE_JP_V12
+#elif defined WIO_LTE_SCHEMATIC_B
 	static const int MODULE_PWR_PIN = 21;		// PB5
 	static const int ANT_PWR_PIN = 28;			// PB12
 	static const int ENABLE_VCCB_PIN = 26;		// PB10

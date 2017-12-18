@@ -252,7 +252,7 @@ void WioLTE::Init()
 	PinModeAndDefault(MODULE_PWR_PIN, OUTPUT, LOW);
 	PinModeAndDefault(ANT_PWR_PIN, OUTPUT, LOW);
 	PinModeAndDefault(ENABLE_VCCB_PIN, OUTPUT, LOW);
-#ifdef WIOLTE_TYPE_JP_V12
+#if defined WIO_LTE_SCHEMATIC_B
 	PinModeAndDefault(RGB_LED_PWR_PIN, OUTPUT, HIGH);
 #endif
 
