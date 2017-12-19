@@ -366,6 +366,46 @@ bool WioLTE::Wakeup()
 	return RET_OK(true);
 }
 
+int WioLTE::GetIMEI(char* imei, int imeiSize)
+{
+	const char* response;
+	std::vector<char> preResponse;
+
+	_Module.WriteCommand("AT+GSN");
+	while (true) {
+		if ((response = _Module.WaitForResponse(NULL, 500, "")) == NULL) return RET_ERR(-1);
+		if (strcmp(response, "OK") == 0) break;
+		preResponse.resize(strlen(response));
+		memcpy(&preResponse[0], response, preResponse.size());
+	}
+
+	if (imeiSize < preResponse.size() + 1) return RET_ERR(-1);
+	memcpy(imei, &preResponse[0], preResponse.size());
+	imei[preResponse.size()] = '\0';
+
+	return RET_OK(preResponse.size());
+}
+
+int WioLTE::GetIMSI(char* imsi, int imsiSize)
+{
+	const char* response;
+	std::vector<char> preResponse;
+
+	_Module.WriteCommand("AT+CIMI");
+	while (true) {
+		if ((response = _Module.WaitForResponse(NULL, 500, "")) == NULL) return RET_ERR(-1);
+		if (strcmp(response, "OK") == 0) break;
+		preResponse.resize(strlen(response));
+		memcpy(&preResponse[0], response, preResponse.size());
+	}
+
+	if (imsiSize < preResponse.size() + 1) return RET_ERR(-1);
+	memcpy(imsi, &preResponse[0], preResponse.size());
+	imsi[preResponse.size()] = '\0';
+
+	return RET_OK(preResponse.size());
+}
+
 int WioLTE::GetPhoneNumber(char* number, int numberSize)
 {
 	const char* parameter;

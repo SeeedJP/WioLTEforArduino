@@ -11,6 +11,8 @@ TurnOff						KEYWORD2
 Sleep						KEYWORD2
 Wakeup						KEYWORD2
 
+GetIMEI						KEYWORD2
+GetIMSI						KEYWORD2
 GetPhoneNumber				KEYWORD2
 GetReceivedSignalStrength	KEYWORD2
 GetTime						KEYWORD2
