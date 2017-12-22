@@ -24,6 +24,7 @@ DeleteReceivedSMS			KEYWORD2
 Activate					KEYWORD2
 
 SyncTime					KEYWORD2
+GetLocation					KEYWORD2
 
 SocketOpen					KEYWORD2
 SocketSend					KEYWORD2
