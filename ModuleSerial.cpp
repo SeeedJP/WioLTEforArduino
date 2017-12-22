@@ -64,7 +64,7 @@ int WioLTE::ModuleSerial::Read(byte* data, int dataSize)
 	return dataSize;
 }
 
-const char* WioLTE::ModuleSerial::ReadResponse(const char* match)
+const char* WioLTE::ModuleSerial::ReadResponse(const char* match, long timeout)
 {
 	int matchSize;
 	if (match != NULL) matchSize = strlen(match);
@@ -75,7 +75,7 @@ const char* WioLTE::ModuleSerial::ReadResponse(const char* match)
 		// Wait for available.
 		WioLTE::Stopwatch sw;
 		sw.Start();
-		if (!WaitForAvailable(&sw, 10)) return NULL;
+		if (!WaitForAvailable(&sw, timeout)) return NULL;
 
 		// Read byte.
 		byte b = SerialRead();
@@ -144,7 +144,7 @@ const char* WioLTE::ModuleSerial::WaitForResponse(const char* waitResponse, long
 	while (true) {
 		if (!WaitForAvailable(&sw, timeout)) return NULL;
 
-		const char* response = ReadResponse(waitPatternFlag & WFR_WITHOUT_DELIM ? waitPattern : NULL);
+		const char* response = ReadResponse(waitPatternFlag & WFR_WITHOUT_DELIM ? waitPattern : NULL, waitPatternFlag & WFR_TIMEOUT_FOR_BYTE ? timeout : 10);
 
 		if (!(waitPatternFlag & WFR_GET_NULL_STRING) && response[0] == '\0') continue;
 

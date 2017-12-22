@@ -114,6 +114,7 @@ private:
 			WFR_START_WITH			= 0x02,
 			WFR_REMOVE_START_WITH	= 0x04,
 			WFR_GET_NULL_STRING		= 0x08,
+			WFR_TIMEOUT_FOR_BYTE	= 0x10,
 		};
 
 	public:
@@ -125,7 +126,7 @@ private:
 		void DiscardRead();
 		bool WaitForAvailable(Stopwatch* sw, long timeout) const;
 		int Read(byte* data, int dataSize);
-		const char* ReadResponse(const char* match = NULL);
+		const char* ReadResponse(const char* match, long timeout);
 
 	public:
 		void Init();

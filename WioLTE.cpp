@@ -724,7 +724,6 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 				connectIdUsed[connectId] = true;
 			}
 		}
-
 	} while (strcmp(response, "OK") != 0);
 
 	int connectId;
@@ -854,23 +853,32 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 	if (_Module.WaitForResponse("CONNECT", 1000) == NULL) return RET_ERR(-1);
 	if (contentLength >= 0) {
 		if (contentLength + 1 > dataSize) return RET_ERR(-1);
-		if (_Module.Read((byte*)data, contentLength, 1000) != contentLength) return RET_ERR(-1);
+		int actualContentLength = 0;
+		do {
+			int readedContentLength = _Module.Read((byte*)&data[actualContentLength], contentLength - actualContentLength, 60000);
+			if (readedContentLength <= 0) return RET_ERR(-1);
+			actualContentLength += readedContentLength;
+		} while (actualContentLength < contentLength);
 		data[contentLength] = '\0';
+
 		if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(-1);
 	}
 	else {
 		contentLength = 0;
 
 		while (true) {
-			parameter = _Module.WaitForResponse("OK", 1000, "", ModuleSerial::WFR_GET_NULL_STRING);
+			parameter = _Module.WaitForResponse("OK", 60000, "", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_GET_NULL_STRING | ModuleSerial::WFR_TIMEOUT_FOR_BYTE));
 			if (parameter == NULL) return RET_ERR(-1);
 			if (strcmp(parameter, "OK") == 0) break;
 
-			if (contentLength + strlen(parameter) + 2 + 1 > dataSize) return RET_ERR(-1);
-			strcpy(&data[contentLength], parameter);
-			strcpy(&data[contentLength + strlen(parameter)], "\r\n");
-			contentLength += strlen(parameter) + 2;
+			int parameterLength = strlen(parameter);
+			if (contentLength + parameterLength + 2 + 1 > dataSize) return RET_ERR(-1);
+			memcpy(&data[contentLength], parameter, parameterLength);
+			strcpy(&data[contentLength + parameterLength], "\r\n");
+			contentLength += parameterLength + 2;
 		}
+		if (contentLength >= 2 && strcmp(&data[contentLength - 2], "\r\n") == 0) contentLength -= 2;
+		data[contentLength] = '\0';
 	}
 	if ((parameter = _Module.WaitForResponse(NULL, 1000, "+QHTTPREAD: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1);
 	if (strcmp(parameter, "0") != 0) return RET_ERR(-1);
