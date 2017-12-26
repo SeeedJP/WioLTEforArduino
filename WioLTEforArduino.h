@@ -180,6 +180,7 @@ private:
 	static const int AP_READY_PIN = 33;			// PC1
 
 	static const int RGB_LED_PIN = 17;			// PB1
+	static const int SD_POWR_PIN = 15;			// PA15
 
 #else
 #error Unkown WioLTE type
@@ -231,6 +232,7 @@ public:
 	void PowerSupplyLTE(bool on);
 	void PowerSupplyGNSS(bool on);
 	void PowerSupplyGrove(bool on);
+	void PowerSupplySD(bool on);
 	bool IsBusy() const;
 	bool TurnOnOrReset();
 	bool TurnOff();

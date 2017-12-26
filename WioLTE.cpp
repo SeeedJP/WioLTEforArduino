@@ -254,6 +254,7 @@ void WioLTE::Init()
 	PinModeAndDefault(ENABLE_VCCB_PIN, OUTPUT, LOW);
 #if defined WIO_LTE_SCHEMATIC_B
 	PinModeAndDefault(RGB_LED_PWR_PIN, OUTPUT, HIGH);
+	PinModeAndDefault(SD_POWR_PIN, OUTPUT, LOW);
 #endif
 
 	// Turn on/off Pins
@@ -294,6 +295,13 @@ void WioLTE::PowerSupplyGNSS(bool on)
 void WioLTE::PowerSupplyGrove(bool on)
 {
 	digitalWrite(ENABLE_VCCB_PIN, on ? HIGH : LOW);
+}
+
+void WioLTE::PowerSupplySD(bool on)
+{
+#if defined WIO_LTE_SCHEMATIC_B
+	digitalWrite(SD_POWR_PIN, on ? HIGH : LOW);
+#endif
 }
 
 bool WioLTE::IsBusy() const
