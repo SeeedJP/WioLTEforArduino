@@ -18,7 +18,7 @@ WioLTEClient::WioLTEClient(WioLTE* wio)
 
 WioLTEClient::~WioLTEClient()
 {
-	delete _ReceiveBuffer;
+	delete [] _ReceiveBuffer;
 }
 
 int WioLTEClient::connect(IPAddress ip, uint16_t port)
