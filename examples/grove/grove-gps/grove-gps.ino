@@ -29,8 +29,10 @@ void loop()
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 
+#define GPS_OVERFLOW_STRING "OVERFLOW"
+
 HardwareSerial* GpsSerial;
-char GpsData[60];
+char GpsData[100];
 char GpsDataLength;
 
 void GpsBegin(HardwareSerial* serial)
@@ -51,10 +53,11 @@ const char* GpsRead()
       return GpsData;
     }
     
-    GpsData[GpsDataLength++] = data;
-    if (GpsDataLength >= sizeof (GpsData) - 1) {  // Overflow
+    if (GpsDataLength > sizeof (GpsData) - 1) { // Overflow
       GpsDataLength = 0;
+      return GPS_OVERFLOW_STRING;
     }
+    GpsData[GpsDataLength++] = data;
   }
 
   return NULL;
