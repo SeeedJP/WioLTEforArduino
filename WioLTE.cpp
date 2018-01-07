@@ -662,7 +662,16 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false);
 	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false);
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT=1", "OK", 150000) == NULL) return RET_ERR(false);
+	sw.Start();
+	while (true) {
+		_Module.WriteCommand("AT+QIACT=1");
+		const char* response = _Module.WaitForResponse("OK", 150000, "ERROR");
+		if (response == NULL) return RET_ERR(false);
+		if (strcmp(response, "OK") == 0) break;
+		if (_Module.WriteCommandAndWaitForResponse("AT+QIGETERROR", "OK", 500) == NULL) return RET_ERR(false);
+		if (sw.ElapsedMilliseconds() >= 150000) return RET_ERR(false);
+		delay(POLLING_INTERVAL);
+	}
 
 	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000) == NULL) return RET_ERR(false);
 
