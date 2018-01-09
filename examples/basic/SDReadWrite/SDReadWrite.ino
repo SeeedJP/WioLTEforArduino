@@ -37,6 +37,8 @@ void setup()
     SerialUSB.write(myFile.read());
   }
   myFile.close();
+
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop()

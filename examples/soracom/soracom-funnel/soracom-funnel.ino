@@ -16,7 +16,7 @@ void setup() {
   
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyLTE(true);
-  delay(5000);
+  delay(500);
 
   SerialUSB.println("### Turn on or reset.");
   if (!Wio.TurnOnOrReset()) {
@@ -25,11 +25,12 @@ void setup() {
   }
 
   SerialUSB.println("### Connecting to \"soracom.io\".");
-  delay(5000);
   if (!Wio.Activate("soracom.io", "sora", "sora")) {
     SerialUSB.println("### ERROR! ###");
     return;
   }
+
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop() {

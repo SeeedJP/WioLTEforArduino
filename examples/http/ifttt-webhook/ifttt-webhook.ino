@@ -6,7 +6,7 @@
 #define PASSWORD          "sora"
 
 #define WEBHOOK_EVENTNAME "wiolte_uptime"
-#define WEBHOOK_KEY       "_6wh2r_acHW26-rm3XV5D"
+#define WEBHOOK_KEY       ""
 #define WEBHOOK_URL       "https://maker.ifttt.com/trigger/"WEBHOOK_EVENTNAME"/with/key/"WEBHOOK_KEY
 
 #define INTERVAL          (60000)
@@ -24,7 +24,7 @@ void setup() {
   
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyLTE(true);
-  delay(5000);
+  delay(500);
 
   SerialUSB.println("### Turn on or reset.");
   if (!Wio.TurnOnOrReset()) {
@@ -33,11 +33,12 @@ void setup() {
   }
 
   SerialUSB.println("### Connecting to \""APN"\".");
-  delay(5000);
   if (!Wio.Activate(APN, USERNAME, PASSWORD)) {
     SerialUSB.println("### ERROR! ###");
     return;
   }
+
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop() {

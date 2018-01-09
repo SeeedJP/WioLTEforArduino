@@ -15,7 +15,7 @@ void setup() {
   
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyLTE(true);
-  delay(5000);
+  delay(500);
 
   SerialUSB.println("### Turn on or reset.");
   if (!Wio.TurnOnOrReset()) {
@@ -29,6 +29,8 @@ void setup() {
     SerialUSB.println("### ERROR! ###");
     return;
   }
+
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop() {

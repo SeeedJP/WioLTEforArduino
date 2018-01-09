@@ -7,7 +7,7 @@
 void setup()
 {
   pinMode(BUZZER_PIN, OUTPUT);
-  delay(5000);
+  delay(500);
 }
 
 void loop()

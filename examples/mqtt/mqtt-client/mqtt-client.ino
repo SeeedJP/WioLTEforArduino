@@ -37,7 +37,7 @@ void setup() {
   
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyLTE(true);
-  delay(5000);
+  delay(500);
 
   SerialUSB.println("### Turn on or reset.");
   if (!Wio.TurnOnOrReset()) {
@@ -46,7 +46,6 @@ void setup() {
   }
 
   SerialUSB.println("### Connecting to \""APN"\".");
-  delay(5000);
   if (!Wio.Activate(APN, USERNAME, PASSWORD)) {
     SerialUSB.println("### ERROR! ###");
     return;
@@ -61,6 +60,8 @@ void setup() {
     return;
   }
   MqttClient.subscribe(IN_TOPIC);
+
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop() {

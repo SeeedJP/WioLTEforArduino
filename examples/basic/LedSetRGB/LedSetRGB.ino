@@ -1,5 +1,6 @@
 #include <WioLTEforArduino.h>
 
+#define LED_VALUE (10)
 #define INTERVAL  (50)
 
 WioLTE Wio;
@@ -13,6 +14,8 @@ void setup() {
   
   SerialUSB.println("### I/O Initialize.");
   Wio.Init();
+
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop() {
@@ -21,34 +24,34 @@ void loop() {
   int b;
   
   if (Hue < 60) {
-    r = 255;
-    g = Hue * 255 / 60;
+    r = LED_VALUE;
+    g = Hue * LED_VALUE / 60;
     b = 0;
   }
   else if (Hue < 120) {
-    r = (120 - Hue) * 255 / 60;
-    g = 255;
+    r = (120 - Hue) * LED_VALUE / 60;
+    g = LED_VALUE;
     b = 0;
   }
   else if (Hue < 180) {
     r = 0;
-    g = 255;
-    b = (Hue - 120) * 255 / 60;
+    g = LED_VALUE;
+    b = (Hue - 120) * LED_VALUE / 60;
   }
   else if (Hue < 240) {
     r = 0;
-    g = (240 - Hue) * 255 / 60;
-    b = 255;
+    g = (240 - Hue) * LED_VALUE / 60;
+    b = LED_VALUE;
   }
   else if (Hue < 300) {
-    r = (Hue - 240) * 255 / 60;
+    r = (Hue - 240) * LED_VALUE / 60;
     g = 0;
-    b = 255;
+    b = LED_VALUE;
   }
   else {
-    r = 255;
+    r = LED_VALUE;
     g = 0;
-    b = (360 - Hue) * 255 / 60;
+    b = (360 - Hue) * LED_VALUE / 60;
   }
   
   Wio.LedSetRGB(r, g, b);
