@@ -1,7 +1,8 @@
 #include <WioLTEforArduino.h>
 #include <stdio.h>
 
-#define INTERVAL  (60000)
+#define INTERVAL        (60000)
+#define RECEIVE_TIMEOUT (10000)
 
 WioLTE Wio;
   
@@ -35,6 +36,7 @@ void setup() {
 
 void loop() {
   char data[100];
+  unsigned long receiveStartTime;
   
   SerialUSB.println("### Open.");
   int connectId = Wio.SocketOpen("funnel.soracom.io", 23080, WIOLTE_UDP);
@@ -50,22 +52,28 @@ void loop() {
   SerialUSB.println("");
   if (!Wio.SocketSend(connectId, data)) {
     SerialUSB.println("### ERROR! ###");
-    goto err;
+    goto err_close;
   }
   
   SerialUSB.println("### Receive.");
-  int length;
-  do {
-    length = Wio.SocketReceive(connectId, data, sizeof (data));
+  receiveStartTime = millis();
+  while (true) {
+    int length = Wio.SocketReceive(connectId, data, sizeof (data));
+    if (length > 0) break;
     if (length < 0) {
       SerialUSB.println("### ERROR! ###");
-      goto err;
+      goto err_close;
     }
-  } while (length == 0);
+    if (millis() - receiveStartTime >= RECEIVE_TIMEOUT) {
+      SerialUSB.println("### RECEIVE TIMEOUT! ###");
+      goto err_close;
+    }
+  }
   SerialUSB.print("Receive:");
   SerialUSB.print(data);
   SerialUSB.println("");
 
+err_close:
   SerialUSB.println("### Close.");
   if (!Wio.SocketClose(connectId)) {
     SerialUSB.println("### ERROR! ###");
