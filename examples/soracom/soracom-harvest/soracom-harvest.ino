@@ -36,15 +36,13 @@ void setup() {
 
 #ifdef SENSOR_PIN
   TemperatureAndHumidityBegin(SENSOR_PIN);
-#endif
+#endif // SENSOR_PIN
 
   SerialUSB.println("### Setup completed.");
 }
 
 void loop() {
   char data[100];
-  int connectId;
-  unsigned long receiveStartTime;
 
 #ifdef SENSOR_PIN
   float temp;
@@ -65,9 +63,10 @@ void loop() {
   sprintf(data,"{\"temp\":%.1f,\"humi\":%.1f}", temp, humi);
 #else
   sprintf(data, "{\"uptime\":%lu}", millis() / 1000);
-#endif
+#endif // SENSOR_PIN
 
   SerialUSB.println("### Open.");
+  int connectId;
   connectId = Wio.SocketOpen("harvest.soracom.io", 8514, WIOLTE_UDP);
   if (connectId < 0) {
     SerialUSB.println("### ERROR! ###");
@@ -84,18 +83,15 @@ void loop() {
   }
 
   SerialUSB.println("### Receive.");
-  receiveStartTime = millis();
-  while (true) {
-    int length = Wio.SocketReceive(connectId, data, sizeof (data));
-    if (length > 0) break;
-    if (length < 0) {
-      SerialUSB.println("### ERROR! ###");
-      goto err_close;
-    }
-    if (millis() - receiveStartTime >= RECEIVE_TIMEOUT) {
-      SerialUSB.println("### RECEIVE TIMEOUT! ###");
-      goto err_close;
-    }
+  int length;
+  length = Wio.SocketReceive(connectId, data, sizeof (data), RECEIVE_TIMEOUT);
+  if (length < 0) {
+    SerialUSB.println("### ERROR! ###");
+    goto err_close;
+  }
+  if (length == 0) {
+    SerialUSB.println("### RECEIVE TIMEOUT! ###");
+    goto err_close;
   }
   SerialUSB.print("Receive:");
   SerialUSB.print(data);
@@ -143,8 +139,12 @@ bool TemperatureAndHumidityRead(float* temperature, float* humidity)
   return true;
 }
 
+#endif // SENSOR_PIN
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
+
+#ifdef SENSOR_PIN
 
 void DHT11Init(int pin)
 {
@@ -208,6 +208,6 @@ bool DHT11Check(const byte* data, int dataSize)
   return data[dataSize - 1] == sum;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
+#endif // SENSOR_PIN
 
-#endif
+////////////////////////////////////////////////////////////////////////////////////////

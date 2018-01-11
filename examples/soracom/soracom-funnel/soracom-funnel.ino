@@ -36,10 +36,10 @@ void setup() {
 
 void loop() {
   char data[100];
-  unsigned long receiveStartTime;
   
   SerialUSB.println("### Open.");
-  int connectId = Wio.SocketOpen("funnel.soracom.io", 23080, WIOLTE_UDP);
+  int connectId;
+  connectId = Wio.SocketOpen("funnel.soracom.io", 23080, WIOLTE_UDP);
   if (connectId < 0) {
     SerialUSB.println("### ERROR! ###");
     goto err;
@@ -56,18 +56,15 @@ void loop() {
   }
   
   SerialUSB.println("### Receive.");
-  receiveStartTime = millis();
-  while (true) {
-    int length = Wio.SocketReceive(connectId, data, sizeof (data));
-    if (length > 0) break;
-    if (length < 0) {
-      SerialUSB.println("### ERROR! ###");
-      goto err_close;
-    }
-    if (millis() - receiveStartTime >= RECEIVE_TIMEOUT) {
-      SerialUSB.println("### RECEIVE TIMEOUT! ###");
-      goto err_close;
-    }
+  int length;
+  length = Wio.SocketReceive(connectId, data, sizeof (data), RECEIVE_TIMEOUT);
+  if (length < 0) {
+    SerialUSB.println("### ERROR! ###");
+    goto err_close;
+  }
+  if (length == 0) {
+    SerialUSB.println("### RECEIVE TIMEOUT! ###");
+    goto err_close;
   }
   SerialUSB.print("Receive:");
   SerialUSB.print(data);
