@@ -3,9 +3,7 @@
 #include <limits.h>
 #include "WioLTEforArduino.h"
 
-//#define DEBUG
-
-#ifdef DEBUG
+#ifdef WIOLTE_DEBUG
 #define DEBUG_PRINT(str)			DebugPrint(str)
 #define DEBUG_PRINTLN(str)			DebugPrintln(str)
 static void DebugPrint(const char* str)
@@ -20,7 +18,7 @@ static void DebugPrintln(const char* str)
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
-#endif // DEBUG
+#endif // WIOLTE_DEBUG
 
 #define RET_OK(val)					(val)
 #define RET_ERR(val)				(ErrorOccured(__LINE__, val))
@@ -654,11 +652,11 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	}
 
 	// for debug.
-#ifdef DEBUG
+#ifdef WIOLTE_DEBUG
 	_Module.WriteCommandAndWaitForResponse("AT+CREG?", "OK", 500);
 	_Module.WriteCommandAndWaitForResponse("AT+CGREG?", "OK", 500);
 	_Module.WriteCommandAndWaitForResponse("AT+CEREG?", "OK", 500);
-#endif // DEBUG
+#endif // WIOLTE_DEBUG
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false);
@@ -676,9 +674,9 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	}
 
 	// for debug.
-#ifdef DEBUG
+#ifdef WIOLTE_DEBUG
 	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000) == NULL) return RET_ERR(false);
-#endif // DEBUG
+#endif // WIOLTE_DEBUG
 
 	return RET_OK(true);
 }

@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include "WioLTEforArduino.h"
 
-//#define DEBUG
-
-#ifdef DEBUG
+#ifdef WIOLTE_DEBUG
 #define DEBUG_PRINT(str)			DebugPrint(str)
 #define DEBUG_PRINTLN(str)			DebugPrintln(str)
 static void DebugPrint(const char* str)
@@ -24,7 +22,7 @@ static void DebugPrintln(const char* str)
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
-#endif // DEBUG
+#endif // WIOLTE_DEBUG
 
 #define CHAR_CR (0x0d)
 #define CHAR_LF (0x0a)
