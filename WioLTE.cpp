@@ -20,7 +20,7 @@ static void DebugPrintln(const char* str)
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
-#endif
+#endif // DEBUG
 
 #define RET_OK(val)					(val)
 #define RET_ERR(val)				(ErrorOccured(__LINE__, val))
@@ -252,10 +252,10 @@ void WioLTE::Init()
 	PinModeAndDefault(MODULE_PWR_PIN, OUTPUT, LOW);
 	PinModeAndDefault(ANT_PWR_PIN, OUTPUT, LOW);
 	PinModeAndDefault(ENABLE_VCCB_PIN, OUTPUT, LOW);
-#if defined WIO_LTE_SCHEMATIC_B
+#if defined WIOLTE_SCHEMATIC_B
 	PinModeAndDefault(RGB_LED_PWR_PIN, OUTPUT, HIGH);
 	PinModeAndDefault(SD_POWR_PIN, OUTPUT, LOW);
-#endif
+#endif // WIOLTE_SCHEMATIC_B
 
 	// Turn on/off Pins
 	PinModeAndDefault(PWR_KEY_PIN, OUTPUT, LOW);
@@ -299,9 +299,9 @@ void WioLTE::PowerSupplyGrove(bool on)
 
 void WioLTE::PowerSupplySD(bool on)
 {
-#if defined WIO_LTE_SCHEMATIC_B
+#if defined WIOLTE_SCHEMATIC_B
 	digitalWrite(SD_POWR_PIN, on ? HIGH : LOW);
-#endif
+#endif // WIOLTE_SCHEMATIC_B
 }
 
 bool WioLTE::IsBusy() const
@@ -654,9 +654,11 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	}
 
 	// for debug.
+#ifdef DEBUG
 	_Module.WriteCommandAndWaitForResponse("AT+CREG?", "OK", 500);
 	_Module.WriteCommandAndWaitForResponse("AT+CGREG?", "OK", 500);
 	_Module.WriteCommandAndWaitForResponse("AT+CEREG?", "OK", 500);
+#endif // DEBUG
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false);
@@ -673,7 +675,17 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 		delay(POLLING_INTERVAL);
 	}
 
+	// for debug.
+#ifdef DEBUG
 	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000) == NULL) return RET_ERR(false);
+#endif // DEBUG
+
+	return RET_OK(true);
+}
+
+bool WioLTE::Deactivate()
+{
+	if (_Module.WriteCommandAndWaitForResponse("AT+QIDEACT=1", "OK", 40000) == NULL) return RET_ERR(false);
 
 	return RET_OK(true);
 }

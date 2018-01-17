@@ -144,7 +144,7 @@ private:
 	// WioLTE
 
 private:
-#if defined WIO_LTE_SCHEMATIC_A
+#if defined WIOLTE_SCHEMATIC_A
 	static const int MODULE_PWR_PIN = 18;		// PB2
 	static const int ANT_PWR_PIN = 28;			// PB12
 	static const int ENABLE_VCCB_PIN = 26;		// PB10    
@@ -162,7 +162,7 @@ private:
 
 	static const int RGB_LED_PIN = 17;			// PB1
 
-#elif defined WIO_LTE_SCHEMATIC_B
+#elif defined WIOLTE_SCHEMATIC_B
 	static const int MODULE_PWR_PIN = 21;		// PB5
 	static const int ANT_PWR_PIN = 28;			// PB12
 	static const int ENABLE_VCCB_PIN = 26;		// PB10
@@ -255,6 +255,7 @@ public:
 	bool DeleteReceivedSMS();
 
 	bool Activate(const char* accessPointName, const char* userName, const char* password);
+	bool Deactivate();
 
 	bool SyncTime(const char* host);
 	bool GetLocation(double* longitude, double* latitude);

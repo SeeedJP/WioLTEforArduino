@@ -23,6 +23,7 @@ ReceiveSMS					KEYWORD2
 DeleteReceivedSMS			KEYWORD2
 
 Activate					KEYWORD2
+Deactivate					KEYWORD2
 
 SyncTime					KEYWORD2
 GetLocation					KEYWORD2

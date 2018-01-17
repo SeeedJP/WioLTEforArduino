@@ -24,7 +24,7 @@ static void DebugPrintln(const char* str)
 #else
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
-#endif
+#endif // DEBUG
 
 #define CHAR_CR (0x0d)
 #define CHAR_LF (0x0a)
