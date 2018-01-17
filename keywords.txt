@@ -6,7 +6,6 @@ PowerSupplyLTE				KEYWORD2
 PowerSupplyGNSS				KEYWORD2
 PowerSupplyGrove			KEYWORD2
 PowerSupplySD				KEYWORD2
-IsBusy						KEYWORD2
 TurnOnOrReset				KEYWORD2
 TurnOff						KEYWORD2
 Sleep						KEYWORD2
