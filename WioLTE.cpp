@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <stdio.h>
 #include <limits.h>
+#include "CMSIS/cmsis_gcc.h"
+#include "CMSIS/core_cm4.h"
 #include "WioLTEforArduino.h"
 
 #ifdef WIOLTE_DEBUG
@@ -992,6 +994,11 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 	}
 
 	return RET_OK(true);
+}
+
+void WioLTE::SystemReset()
+{
+	NVIC_SystemReset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

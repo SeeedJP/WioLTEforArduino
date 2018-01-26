@@ -290,4 +290,7 @@ public:
 	int HttpGet(const char* url, char* data, int dataSize);
 	bool HttpPost(const char* url, const char* data, int* responseCode);
 
+public:
+	static void SystemReset();
+
 };
