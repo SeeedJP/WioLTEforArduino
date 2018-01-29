@@ -147,7 +147,6 @@ public:
 	enum ErrorCodeType {
 		E_OK = 0,
 		E_UNKNOWN,
-		E_
 	};
 
 	enum SocketType {
