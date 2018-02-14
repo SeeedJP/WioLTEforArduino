@@ -3,11 +3,25 @@
 
 #define INTERVAL    (100)
 
+WioLTE Wio;
 ADXL345 Accel;
 
 void setup()
 {
+  delay(200);
+
+  SerialUSB.println("");
+  SerialUSB.println("--- START ---------------------------------------------------");
+  
+  SerialUSB.println("### I/O Initialize.");
+  Wio.Init();
+  
+  SerialUSB.println("### Power supply ON.");
+  Wio.PowerSupplyGrove(true);
+  delay(500);
   Accel.powerOn();
+  
+  SerialUSB.println("### Setup completed.");
 }
 
 void loop()

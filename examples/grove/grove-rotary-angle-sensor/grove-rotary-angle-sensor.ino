@@ -17,7 +17,7 @@ void setup() {
 
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyGrove(true);
-  delay(5000);
+  delay(500);
 
   SerialUSB.println("### Setup pin mode.");
   pinMode(ROTARY_ANGLE_PIN, INPUT_ANALOG);
