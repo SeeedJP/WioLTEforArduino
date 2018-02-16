@@ -938,13 +938,13 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 	ArgumentParser parser;
 
 	if (strncmp("https:", url, 6) == 0) {
-		if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
 	}
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"requestheader\",1", "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"requestheader\",1", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
 
 	if (!HttpSetUrl(url)) return RET_ERR(false, E_UNKNOWN);
 
@@ -984,8 +984,8 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 
 	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QHTTPPOST: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
 	parser.Parse(parameter);
-	if (parser.Size() < 1) return RET_ERR(-1, E_UNKNOWN);
-	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1, E_UNKNOWN);
+	if (parser.Size() < 1) return RET_ERR(false, E_UNKNOWN);
+	if (strcmp(parser[0], "0") != 0) return RET_ERR(false, E_UNKNOWN);
 	if (parser.Size() < 2) {
 		*responseCode = -1;
 	}
