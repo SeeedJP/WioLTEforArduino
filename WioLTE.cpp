@@ -446,11 +446,11 @@ int WioLTE::GetPhoneNumber(char* number, int numberSize)
 
 		parser.Parse(parameter);
 		if (parser.Size() < 2) return RET_ERR(-1, E_UNKNOWN);
-		if (numberSize < strlen(parser[1]) + 1) RET_ERR(-1, E_UNKNOWN);
+		if (numberSize < strlen(parser[1]) + 1) return RET_ERR(-1, E_UNKNOWN);
 		strcpy(number, parser[1]);
 		set = true;
 	}
-	if (!set) RET_OK(0);
+	if (!set) return RET_OK(0);
 
 	return RET_OK((int)strlen(number));
 }
