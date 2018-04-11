@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Arduino.h>
+
 //#define WIOLTE_TYPE_JP_ES_V11	// Private version.
 //#define WIOLTE_TYPE_JP_ES_V12	// Private version.
 //#define WIOLTE_TYPE_V10		// 1st public version.

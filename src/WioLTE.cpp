@@ -1,26 +1,13 @@
-#include <Arduino.h>
+#include "WioLTEConfig.h"
+#include "WioLTE.h"
+
+#include "Internal/Debug.h"
+#include "Internal/StringBuilder.h"
+#include "Internal/ArgumentParser.h"
+#include "Internal/CMSIS/cmsis_gcc.h"
+#include "Internal/CMSIS/core_cm4.h"
 #include <stdio.h>
 #include <limits.h>
-#include "CMSIS/cmsis_gcc.h"
-#include "CMSIS/core_cm4.h"
-#include "WioLTEforArduino.h"
-
-#ifdef WIOLTE_DEBUG
-#define DEBUG_PRINT(str)			DebugPrint(str)
-#define DEBUG_PRINTLN(str)			DebugPrintln(str)
-static void DebugPrint(const char* str)
-{
-	for (int i = 0; i < strlen(str); i++) SerialUSB.print(str[i]);
-}
-static void DebugPrintln(const char* str)
-{
-	DebugPrint(str);
-	DebugPrint("\r\n");
-}
-#else
-#define DEBUG_PRINT(str)
-#define DEBUG_PRINTLN(str)
-#endif // WIOLTE_DEBUG
 
 #define RET_OK(val)					(ReturnOk(val))
 #define RET_ERR(val,err)			(ReturnError(__LINE__, val, err))
@@ -174,8 +161,8 @@ bool WioLTE::Reset()
 	delay(300);
 
 	Stopwatch sw;
-	sw.Start();
-	while (_Module.WaitForResponse("RDY", 100) == NULL) {
+	sw.Restart();
+	while (!_AtSerial.ReadResponse("^RDY$", 100, NULL)) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
@@ -192,7 +179,7 @@ bool WioLTE::TurnOn()
 	digitalWrite(PWR_KEY_PIN, LOW);
 
 	Stopwatch sw;
-	sw.Start();
+	sw.Restart();
 	while (IsBusy()) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 5000) return false;
@@ -200,8 +187,8 @@ bool WioLTE::TurnOn()
 	}
 	DEBUG_PRINTLN("");
 
-	sw.Start();
-	while (_Module.WaitForResponse("RDY", 100) == NULL) {
+	sw.Restart();
+	while (!_AtSerial.ReadResponse("^RDY$", 100, NULL)) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return false;
 	}
@@ -212,27 +199,24 @@ bool WioLTE::TurnOn()
 
 int WioLTE::GetFirstIndexOfReceivedSMS()
 {
-	const char* parameter;
-	const char* hex;
+	std::string response;
 	ArgumentParser parser;
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return -1;
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=0", "^OK$", 500, NULL)) return -1;
 
-	_Module.WriteCommand("AT+CMGL=4");	// ALL
+	_AtSerial.WriteCommand("AT+CMGL=4");	// ALL
 
 	int messageIndex = -1;
 	while (true) {
-		parameter = _Module.WaitForResponse("OK", 500, "+CMGL: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
-		if (parameter == NULL) return -1;
-		if (strcmp(parameter, "OK") == 0) break;
+		if (!_AtSerial.ReadResponse("^(OK|\\+CMGL: .*)$", 500, &response)) return -1;
+		if (response == "OK") break;
 		if (messageIndex < 0) {
-			parser.Parse(parameter);
+			parser.Parse(&response.c_str()[7]);
 			if (parser.Size() != 4) return -1;
 			messageIndex = atoi(parser[0]);
 		}
 
-		const char* hex = _Module.WaitForResponse(NULL, 500, "");
-		if (hex == NULL) return -1;
+		if (!_AtSerial.ReadResponse("^.*$", 500, NULL)) return -1;
 	}
 
 	return messageIndex < 0 ? -2 : messageIndex;
@@ -242,16 +226,92 @@ bool WioLTE::HttpSetUrl(const char* url)
 {
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QHTTPURL=%d", strlen(url))) return false;
-	_Module.WriteCommand(str.GetString());
-	if (_Module.WaitForResponse("CONNECT", 500) == NULL) return false;
+	_AtSerial.WriteCommand(str.GetString());
+	if (!_AtSerial.ReadResponse("^CONNECT$", 500, NULL)) return false;
 
-	_Module.Write(url);
-	if (_Module.WaitForResponse("OK", 500) == NULL) return false;
+	_AtSerial.WriteBinary((const byte*)url, strlen(url));
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return false;
 
 	return true;
 }
 
-WioLTE::WioLTE() : _Module(), _Led(1, RGB_LED_PIN), _LastErrorCode(E_OK)
+bool WioLTE::ReadResponseCallback(const char* response)
+{
+	return false;
+
+	if (strncmp(response, "+CGREG: ", 8) == 0) {
+		DEBUG_PRINT("### Response Callback +CGREG ### ");
+		DEBUG_PRINTLN(response);
+
+		//ArgumentParser parser;
+		//parser.Parse(&response[8]);
+		//int stat;
+		//if (parser.Size() == 2) {
+		//	stat = atoi(parser[1]);
+		//}
+		//else if (parser.Size() >= 1) {
+		//	stat = atoi(parser[0]);
+		//}
+		//else {
+		//	stat = -1;
+		//}
+
+		//switch (stat)
+		//{
+		//case 0:	// Not registered. MT is not currently searching
+		//case 2:	// Not registered, but MT is currently trying to attach or searching
+		//case 3:	// Registration denied.
+		//	_PacketGprsNetworkRegistration = false;
+		//	DEBUG_PRINTLN("NETWORK OFF");
+		//	break;
+		//case 1:	// Registered, home network.
+		//case 5:	// Registered, roaming
+		//	_PacketGprsNetworkRegistration = true;
+		//	DEBUG_PRINTLN("NETWORK ON");
+		//	break;
+		//}
+
+		return true;
+	}
+	else if (strncmp(response, "+CEREG: ", 8) == 0) {
+		DEBUG_PRINT("### Response Callback +CEREG ### ");
+		DEBUG_PRINTLN(response);
+
+		//ArgumentParser parser;
+		//parser.Parse(&response[8]);
+		//int stat;
+		//if (parser.Size() == 2) {
+		//	stat = atoi(parser[1]);
+		//}
+		//else if (parser.Size() >= 1) {
+		//	stat = atoi(parser[0]);
+		//}
+		//else {
+		//	stat = -1;
+		//}
+
+		//switch (stat)
+		//{
+		//case 0:	// Not registered. MT is not currently searching
+		//case 2:	// Not registered, but MT is currently trying to attach or searching
+		//case 3:	// Registration denied
+		//	_PacketEpsNetworkRegistration = false;
+		//	DEBUG_PRINTLN("NETWORK OFF");
+		//	break;
+		//case 1:	// Registered, home network
+		//case 5:	// Registered, roaming
+		//	_PacketEpsNetworkRegistration = true;
+		//	DEBUG_PRINTLN("NETWORK ON");
+		//	break;
+		//}
+
+		return true;
+	}
+
+	return false;
+}
+
+WioLTE::WioLTE() : _SerialAPI(&Serial1), _AtSerial(&_SerialAPI, this), _Led(1, RGB_LED_PIN), _LastErrorCode(E_OK)
 {
 }
 
@@ -286,9 +346,12 @@ void WioLTE::Init()
 	PinModeAndDefault(W_DISABLE_PIN, OUTPUT, HIGH);
 	//PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
   
-	_Module.Init();
+	_SerialAPI.Begin(115200);
 	_Led.begin();
 	_LastErrorCode = E_OK;
+
+	_PacketGprsNetworkRegistration = false;
+	_PacketEpsNetworkRegistration = false;
 }
 
 void WioLTE::LedSetRGB(byte red, byte green, byte blue)
@@ -326,6 +389,8 @@ void WioLTE::PowerSupplySD(bool on)
 
 bool WioLTE::TurnOnOrReset()
 {
+	std::string response;
+
 	if (!IsBusy()) {
 		if (!Reset()) return RET_ERR(false, E_UNKNOWN);
 	}
@@ -334,24 +399,27 @@ bool WioLTE::TurnOnOrReset()
 	}
 
 	Stopwatch sw;
-	sw.Start();
-	while (_Module.WriteCommandAndWaitForResponse("AT", "OK", 500) == NULL) {
+	sw.Restart();
+	while (!_AtSerial.WriteCommandAndReadResponse("AT", "^OK$", 500, NULL)) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
 	}
 	DEBUG_PRINTLN("");
 
-	if (_Module.WriteCommandAndWaitForResponse("ATE0", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WriteCommandAndWaitForResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-	_Module.WriteCommand("AT+QSCLK=1");
-	if (_Module.WaitForResponse("OK", 500, "ERROR") == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("ATE0", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QSCLK=1", "^(OK|ERROR)$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
-	sw.Start();
+	// TODO ReadResponseCallback
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG=2", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG=2", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+
+	sw.Restart();
 	while (true) {
-		_Module.WriteCommand("AT+CPIN?");
-		const char* response = _Module.WaitForResponse("OK", 5000, "+CME ERROR: ", ModuleSerial::WFR_START_WITH);
-		if (response == NULL) return RET_ERR(false, E_UNKNOWN);
-		if (strcmp(response, "OK") == 0) break;
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+CPIN?", "^(OK|\\+CME ERROR: .*)$", 5000, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (response == "OK") break;
 		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
 		delay(POLLING_INTERVAL);
 	}
@@ -361,8 +429,8 @@ bool WioLTE::TurnOnOrReset()
 
 bool WioLTE::TurnOff()
 {
-	if (_Module.WriteCommandAndWaitForResponse("AT+QPOWD", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WaitForResponse("POWERED DOWN", 60000) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QPOWD", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^POWERED DOWN$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
@@ -376,13 +444,11 @@ bool WioLTE::Sleep()
 
 bool WioLTE::Wakeup()
 {
-	const char* parameter;
-
 	digitalWrite(DTR_PIN, LOW);
 
 	Stopwatch sw;
-	sw.Start();
-	while (_Module.WriteCommandAndWaitForResponse("AT", "OK", 500) == NULL) {
+	sw.Restart();
+	while (!_AtSerial.WriteCommandAndReadResponse("AT", "^OK$", 500, NULL)) {
 		DEBUG_PRINT(".");
 		if (sw.ElapsedMilliseconds() >= 2000) return RET_ERR(false, E_UNKNOWN);
 	}
@@ -393,81 +459,77 @@ bool WioLTE::Wakeup()
 
 int WioLTE::GetIMEI(char* imei, int imeiSize)
 {
-	const char* response;
-	std::vector<char> preResponse;
+	std::string response;
+	std::string imeiStr;
 
-	_Module.WriteCommand("AT+GSN");
+	_AtSerial.WriteCommand("AT+GSN");
 	while (true) {
-		if ((response = _Module.WaitForResponse(NULL, 500, "")) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (strcmp(response, "OK") == 0) break;
-		preResponse.resize(strlen(response));
-		memcpy(&preResponse[0], response, preResponse.size());
+		if (!_AtSerial.ReadResponse("^(OK|[0-9]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (response == "OK") break;
+		imeiStr = response;
 	}
 
-	if (imeiSize < preResponse.size() + 1) return RET_ERR(-1, E_UNKNOWN);
-	memcpy(imei, &preResponse[0], preResponse.size());
-	imei[preResponse.size()] = '\0';
+	if (imeiStr.size() + 1 > imeiSize) return RET_ERR(-1, E_UNKNOWN);
+	strcpy(imei, imeiStr.c_str());
 
-	return RET_OK((int)preResponse.size());
+	return RET_OK((int)strlen(imei));
 }
 
 int WioLTE::GetIMSI(char* imsi, int imsiSize)
 {
-	const char* response;
-	std::vector<char> preResponse;
+	std::string response;
+	std::string imsiStr;
 
-	_Module.WriteCommand("AT+CIMI");
+	_AtSerial.WriteCommand("AT+CIMI");
 	while (true) {
-		if ((response = _Module.WaitForResponse(NULL, 500, "")) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (strcmp(response, "OK") == 0) break;
-		preResponse.resize(strlen(response));
-		memcpy(&preResponse[0], response, preResponse.size());
+		if (!_AtSerial.ReadResponse("^(OK|[0-9]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (response == "OK") break;
+		imsiStr = response;
 	}
 
-	if (imsiSize < preResponse.size() + 1) return RET_ERR(-1, E_UNKNOWN);
-	memcpy(imsi, &preResponse[0], preResponse.size());
-	imsi[preResponse.size()] = '\0';
+	if (imsiStr.size() + 1 > imsiSize) return RET_ERR(-1, E_UNKNOWN);
+	strcpy(imsi, imsiStr.c_str());
 
-	return RET_OK((int)preResponse.size());
+	return RET_OK((int)strlen(imsi));
 }
 
 int WioLTE::GetPhoneNumber(char* number, int numberSize)
 {
-	const char* parameter;
+	std::string response;
 	ArgumentParser parser;
+	std::string numberStr;
 
-	_Module.WriteCommand("AT+CNUM");
-	bool set = false;
+	_AtSerial.WriteCommand("AT+CNUM");
 	while (true) {
-		if ((parameter = _Module.WaitForResponse("OK", 500, "+CNUM: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (strcmp(parameter, "OK") == 0) break;
+		if (!_AtSerial.ReadResponse("^(OK|\\+CNUM: .*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (response == "OK") break;
 
-		if (set) continue;
+		if (numberStr.size() >= 1) continue;
 
-		parser.Parse(parameter);
+		parser.Parse(response.c_str());
 		if (parser.Size() < 2) return RET_ERR(-1, E_UNKNOWN);
-		if (numberSize < strlen(parser[1]) + 1) return RET_ERR(-1, E_UNKNOWN);
-		strcpy(number, parser[1]);
-		set = true;
+		numberStr = parser[1];
 	}
-	if (!set) return RET_OK(0);
+
+	if (numberStr.size() + 1 > numberSize) return RET_ERR(-1, E_UNKNOWN);
+	strcpy(number, numberStr.c_str());
 
 	return RET_OK((int)strlen(number));
 }
 
 int WioLTE::GetReceivedSignalStrength()
 {
-	const char* parameter;
-
-	_Module.WriteCommand("AT+CSQ");
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CSQ: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(INT_MIN, E_UNKNOWN);
-
+	std::string response;
 	ArgumentParser parser;
-	parser.Parse(parameter);
+
+	_AtSerial.WriteCommand("AT+CSQ");
+	if (!_AtSerial.ReadResponse("^\\+CSQ: (.*)$", 500, &response)) return RET_ERR(INT_MIN, E_UNKNOWN);
+
+	parser.Parse(response.c_str());
 	if (parser.Size() != 2) return RET_ERR(INT_MIN, E_UNKNOWN);
 	int rssi = atoi(parser[0]);
 
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(INT_MIN, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(INT_MIN, E_UNKNOWN);
 
 	if (rssi == 0) return RET_OK(-113);
 	else if (rssi == 1) return RET_OK(-111);
@@ -485,13 +547,15 @@ int WioLTE::GetReceivedSignalStrength()
 
 bool WioLTE::GetTime(struct tm* tim)
 {
-	const char* parameter;
+	std::string response;
 
-	_Module.WriteCommand("AT+CCLK?");
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+CCLK: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	_AtSerial.WriteCommand("AT+CCLK?");
+	if (!_AtSerial.ReadResponse("^\\+CCLK: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
-	if (strlen(parameter) != 22) return RET_ERR(false, E_UNKNOWN);
+	if (strlen(response.c_str()) != 22) return RET_ERR(false, E_UNKNOWN);
+	const char* parameter = response.c_str();
+
 	if (parameter[0] != '"') return RET_ERR(false, E_UNKNOWN);
 	if (parameter[3] != '/') return RET_ERR(false, E_UNKNOWN);
 	if (parameter[6] != '/') return RET_ERR(false, E_UNKNOWN);
@@ -514,66 +578,39 @@ bool WioLTE::GetTime(struct tm* tim)
 	return RET_OK(true);
 }
 
-//bool WioLTE::Call(const char* dialNumber)
-//{
-//
-//	char* str = (char*)alloca(3 + strlen(dialNumber) + 1);
-//	sprintf(str, "ATD%s", dialNumber);
-//	_Module.WriteCommand(str);
-//
-//	const char* response;
-//	do {
-//		response = _Module.WaitForResponse(NULL, 5000, "");
-//		if (strcmp(response, "NO DIALTONE") == 0) return RET_ERR(false, E_UNKNOWN);
-//		if (strcmp(response, "BUSY"       ) == 0) return RET_ERR(false, E_UNKNOWN);
-//		if (strcmp(response, "NO CARRIER" ) == 0) return RET_ERR(false, E_UNKNOWN);
-//	} while (strcmp(response, "OK") != 0);
-//
-//	return RET_OK(true);
-//}
-//
-//bool WioLTE::HangUp()
-//{
-//	if (_Module.WriteCommandAndWaitForResponse("ATH", "OK", 90000) == NULL) return RET_ERR(false, E_UNKNOWN);
-//
-//	return RET_OK(true);
-//}
-
 bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
-	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=1", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+CMGS=\"%s\"", dialNumber)) return RET_ERR(false, E_UNKNOWN);
-	_Module.WriteCommand(str.GetString());
-	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return RET_ERR(false, E_UNKNOWN);
-	_Module.Write(message);
-	_Module.Write("\x1a");
-	if (_Module.WaitForResponse("OK", 120000) == NULL) return RET_ERR(false, E_UNKNOWN);
+	_AtSerial.WriteCommand(str.GetString());
+	if (!_AtSerial.ReadResponse("^> ", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	_AtSerial.WriteBinary((const byte*)message, strlen(message));
+	_AtSerial.WriteBinary((const byte*)"\x1a", 1);
+	if (!_AtSerial.ReadResponse("^OK$", 120000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
 
 int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dialNumberSize)
 {
-	const char* parameter;
-	const char* hex;
-
 	int messageIndex = GetFirstIndexOfReceivedSMS();
 	if (messageIndex == -2) return RET_OK(0);
 	if (messageIndex < 0) return RET_ERR(-1, E_UNKNOWN);
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+CMGF=0", "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=0", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+CMGR=%d", messageIndex)) return RET_ERR(-1, E_UNKNOWN);
-	_Module.WriteCommand(str.GetString());
+	_AtSerial.WriteCommand(str.GetString());
 
-	parameter = _Module.WaitForResponse(NULL, 500, "+CMGR: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH));
-	if (parameter == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+CMGR: .*$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
-	hex = _Module.WaitForResponse(NULL, 500, "");
-	if (hex == NULL) return RET_ERR(-1, E_UNKNOWN);
+	std::string response;
+	if (!_AtSerial.ReadResponse("^(.*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+	const char* hex = response.c_str();
+
 	int hexSize = strlen(hex);
 	if (hexSize % 2 != 0) return RET_ERR(-1, E_UNKNOWN);
 	int dataSize = hexSize / 2;
@@ -618,7 +655,7 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 	}
 	message[*tpUdl] = '\0';
 
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	return RET_OK(*tpUdl);
 }
@@ -631,39 +668,39 @@ bool WioLTE::DeleteReceivedSMS()
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+CMGD=%d", messageIndex)) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
 
 bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password)
 {
-	const char* parameter;
+	std::string response;
 	ArgumentParser parser;
-	Stopwatch sw;
 
-	sw.Start();
+	Stopwatch sw;
+	sw.Restart();
 	while (true) {
 		int resultCode;
 		int status;
 
-		_Module.WriteCommand("AT+CGREG?");
-		if ((parameter = _Module.WaitForResponse(NULL, 500, "+CGREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
-		parser.Parse(parameter);
+		_AtSerial.WriteCommand("AT+CGREG?");
+		if (!_AtSerial.ReadResponse("^\\+CGREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		parser.Parse(response.c_str());
 		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
 		resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
-		if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 		if (status == 0) return RET_ERR(false, E_UNKNOWN);
 		if (status == 1 || status == 5) break;
 
-		_Module.WriteCommand("AT+CEREG?");
-		if ((parameter = _Module.WaitForResponse(NULL, 500, "+CEREG: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
-		parser.Parse(parameter);
+		_AtSerial.WriteCommand("AT+CEREG?");
+		if (!_AtSerial.ReadResponse("^\\+CEREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		parser.Parse(response.c_str());
 		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
 		resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
-		if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 		if (status == 0) return RET_ERR(false, E_UNKNOWN);
 		if (status == 1 || status == 5) break;
 
@@ -672,29 +709,28 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 
 	// for debug.
 #ifdef WIOLTE_DEBUG
-	_Module.WriteCommandAndWaitForResponse("AT+CREG?", "OK", 500);
-	_Module.WriteCommandAndWaitForResponse("AT+CGREG?", "OK", 500);
-	_Module.WriteCommandAndWaitForResponse("AT+CEREG?", "OK", 500);
+	_AtSerial.WriteCommandAndReadResponse("AT+CREG?", "^OK$", 500, NULL);
+	_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL);
+	_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL);
 #endif // WIOLTE_DEBUG
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
-	sw.Start();
+	sw.Restart();
 	while (true) {
-		_Module.WriteCommand("AT+QIACT=1");
-		const char* response = _Module.WaitForResponse("OK", 150000, "ERROR");
-		if (response == NULL) return RET_ERR(false, E_UNKNOWN);
-		if (strcmp(response, "OK") == 0) break;
-		if (_Module.WriteCommandAndWaitForResponse("AT+QIGETERROR", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+		_AtSerial.WriteCommand("AT+QIACT=1");
+		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 150000, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (response == "OK") break;
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QIGETERROR", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 		if (sw.ElapsedMilliseconds() >= 150000) return RET_ERR(false, E_UNKNOWN);
 		delay(POLLING_INTERVAL);
 	}
 
 	// for debug.
 #ifdef WIOLTE_DEBUG
-	if (_Module.WriteCommandAndWaitForResponse("AT+QIACT?", "OK", 150000) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIACT?", "^OK$", 150000, NULL)) return RET_ERR(false, E_UNKNOWN);
 #endif // WIOLTE_DEBUG
 
 	return RET_OK(true);
@@ -702,43 +738,44 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 
 bool WioLTE::Deactivate()
 {
-	if (_Module.WriteCommandAndWaitForResponse("AT+QIDEACT=1", "OK", 40000) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIDEACT=1", "^OK$", 40000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
 
 bool WioLTE::SyncTime(const char* host)
 {
-	const char* parameter;
-
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QNTP=1,\"%s\"", host)) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-	if ((parameter = _Module.WaitForResponse(NULL, 125000, "+QNTP: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QNTP: (.*)$", 125000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
 
 bool WioLTE::GetLocation(double* longitude, double* latitude)
 {
-	const char* parameter;
+	std::string response;
 	ArgumentParser parser;
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+QLOCCFG=\"contextid\",1", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QLOCCFG=\"contextid\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
-	_Module.WriteCommand("AT+QCELLLOC");
-	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QCELLLOC: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
-	parser.Parse(parameter);
+	_AtSerial.WriteCommand("AT+QCELLLOC");
+	if (!_AtSerial.ReadResponse("^\\+QCELLLOC: (.*)$", 60000, &response)) return RET_ERR(false, E_UNKNOWN);
+	parser.Parse(response.c_str());
 	if (parser.Size() != 2) return RET_ERR(false, E_UNKNOWN);
 	*longitude = atof(parser[0]);
 	*latitude = atof(parser[1]);
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
 
 int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 {
+	std::string response;
+	ArgumentParser parser;
+
 	if (host == NULL || host[0] == '\0') return RET_ERR(-1, E_UNKNOWN);
 	if (port < 0 || 65535 < port) return RET_ERR(-1, E_UNKNOWN);
 
@@ -757,20 +794,18 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 	bool connectIdUsed[CONNECT_ID_NUM];
 	for (int i = 0; i < CONNECT_ID_NUM; i++) connectIdUsed[i] = false;
 
-	_Module.WriteCommand("AT+QISTATE?");
-	const char* response;
-	ArgumentParser parser;
+	_AtSerial.WriteCommand("AT+QISTATE?");
 	do {
-		if ((response = _Module.WaitForResponse("OK", 10000, "+QISTATE: ", ModuleSerial::WFR_START_WITH)) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (strncmp(response, "+QISTATE: ", 10) == 0) {
-			parser.Parse(&response[10]);
+		if (!_AtSerial.ReadResponse("^(OK|\\+QISTATE: .*)$", 10000, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (strncmp(response.c_str(), "+QISTATE: ", 10) == 0) {
+			parser.Parse(&response.c_str()[10]);
 			if (parser.Size() >= 1) {
 				int connectId = atoi(parser[0]);
 				if (connectId < 0 || CONNECT_ID_NUM <= connectId) return RET_ERR(-1, E_UNKNOWN);
 				connectIdUsed[connectId] = true;
 			}
 		}
-	} while (strcmp(response, "OK") != 0);
+	} while (response != "OK");
 
 	int connectId;
 	for (connectId = 0; connectId < CONNECT_ID_NUM; connectId++) {
@@ -780,10 +815,10 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QIOPEN=1,%d,\"%s\",\"%s\",%d", connectId, typeStr, host, port)) return RET_ERR(-1, E_UNKNOWN);
-	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 150000) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 150000, NULL)) return RET_ERR(-1, E_UNKNOWN);
 	str.Clear();
-	if (!str.WriteFormat("+QIOPEN: %d,0", connectId)) return RET_ERR(-1, E_UNKNOWN);
-	if (_Module.WaitForResponse(str.GetString(), 150000) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!str.WriteFormat("^\\+QIOPEN: %d,0$", connectId)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse(str.GetString(), 150000, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	return RET_OK(connectId);
 }
@@ -795,10 +830,10 @@ bool WioLTE::SocketSend(int connectId, const byte* data, int dataSize)
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QISEND=%d,%d", connectId, dataSize)) return RET_ERR(false, E_UNKNOWN);
-	_Module.WriteCommand(str.GetString());
-	if (_Module.WaitForResponse(NULL, 500, "> ", ModuleSerial::WFR_WITHOUT_DELIM) == NULL) return RET_ERR(false, E_UNKNOWN);
-	_Module.Write(data, dataSize);
-	if (_Module.WaitForResponse("SEND OK", 5000) == NULL) return RET_ERR(false, E_UNKNOWN);
+	_AtSerial.WriteCommand(str.GetString());
+	if (!_AtSerial.ReadResponse("^>", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	_AtSerial.WriteBinary(data, dataSize);
+	if (!_AtSerial.ReadResponse("^SEND OK$", 5000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
@@ -810,19 +845,20 @@ bool WioLTE::SocketSend(int connectId, const char* data)
 
 int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 {
+	std::string response;
+
 	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1, E_UNKNOWN);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QIRD=%d", connectId)) return RET_ERR(-1, E_UNKNOWN);
-	_Module.WriteCommand(str.GetString());
-	const char* parameter;
-	if ((parameter = _Module.WaitForResponse(NULL, 500, "+QIRD: ", ModuleSerial::WFR_START_WITH)) == NULL) return RET_ERR(-1, E_UNKNOWN);
-	int dataLength = atoi(&parameter[7]);
+	_AtSerial.WriteCommand(str.GetString());
+	if (!_AtSerial.ReadResponse("^\\+QIRD: (.*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+	int dataLength = atoi(response.c_str());
 	if (dataLength >= 1) {
 		if (dataLength > dataSize) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.Read(data, dataLength, 500) != dataLength) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadBinary(data, dataLength, 500)) return RET_ERR(-1, E_UNKNOWN);
 	}
-	if (_Module.WaitForResponse("OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	return RET_OK(dataLength);
 }
@@ -838,7 +874,7 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize)
 int WioLTE::SocketReceive(int connectId, byte* data, int dataSize, long timeout)
 {
 	Stopwatch sw;
-	sw.Start();
+	sw.Restart();
 	int dataLength;
 	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
 		if (sw.ElapsedMilliseconds() >= timeout) return 0;
@@ -850,7 +886,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize, long timeout)
 int WioLTE::SocketReceive(int connectId, char* data, int dataSize, long timeout)
 {
 	Stopwatch sw;
-	sw.Start();
+	sw.Restart();
 	int dataLength;
 	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
 		if (sw.ElapsedMilliseconds() >= timeout) return 0;
@@ -865,86 +901,66 @@ bool WioLTE::SocketClose(int connectId)
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICLOSE=%d", connectId)) return RET_ERR(false, E_UNKNOWN);
-	if (_Module.WriteCommandAndWaitForResponse(str.GetString(), "OK", 10000) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 10000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
 
 int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 {
-	const char* parameter;
+	std::string response;
 	ArgumentParser parser;
-	char* str;
 
-	if (strncmp("https:", url, 6) == 0) {
-		if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (strncmp(url, "https:", 6) == 0) {
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 	}
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"requestheader\",0", "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",0", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	if (!HttpSetUrl(url)) return RET_ERR(-1, E_UNKNOWN);
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPGET", "OK", 500) == NULL) return RET_ERR(-1, E_UNKNOWN);
-	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QHTTPGET: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPGET", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPGET: (.*)$", 60000, &response)) return RET_ERR(-1, E_UNKNOWN);
 
-	parser.Parse(parameter);
+	parser.Parse(response.c_str());
 	if (parser.Size() < 1) return RET_ERR(-1, E_UNKNOWN);
 	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1, E_UNKNOWN);
 	int contentLength = parser.Size() >= 3 ? atoi(parser[2]) : -1;
 
-	_Module.WriteCommand("AT+QHTTPREAD");
-	if (_Module.WaitForResponse("CONNECT", 1000) == NULL) return RET_ERR(-1, E_UNKNOWN);
+	_AtSerial.WriteCommand("AT+QHTTPREAD");
+	if (!_AtSerial.ReadResponse("^CONNECT$", 1000, NULL)) return RET_ERR(-1, E_UNKNOWN);
 	if (contentLength >= 0) {
 		if (contentLength + 1 > dataSize) return RET_ERR(-1, E_UNKNOWN);
-		int actualContentLength = 0;
-		do {
-			int readedContentLength = _Module.Read((byte*)&data[actualContentLength], contentLength - actualContentLength, 60000);
-			if (readedContentLength <= 0) return RET_ERR(-1, E_UNKNOWN);
-			actualContentLength += readedContentLength;
-		} while (actualContentLength < contentLength);
+		if (!_AtSerial.ReadBinary((byte*)data, contentLength, 60000)) return RET_ERR(-1, E_UNKNOWN);
 		data[contentLength] = '\0';
 
-		if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(-1, E_UNKNOWN);
 	}
 	else {
-		contentLength = 0;
-
-		while (true) {
-			parameter = _Module.WaitForResponse("OK", 60000, "", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_GET_NULL_STRING | ModuleSerial::WFR_TIMEOUT_FOR_BYTE));
-			if (parameter == NULL) return RET_ERR(-1, E_UNKNOWN);
-			if (strcmp(parameter, "OK") == 0) break;
-
-			int parameterLength = strlen(parameter);
-			if (contentLength + parameterLength + 2 + 1 > dataSize) return RET_ERR(-1, E_UNKNOWN);
-			memcpy(&data[contentLength], parameter, parameterLength);
-			strcpy(&data[contentLength + parameterLength], "\r\n");
-			contentLength += parameterLength + 2;
-		}
-		if (contentLength >= 2 && strcmp(&data[contentLength - 2], "\r\n") == 0) contentLength -= 2;
-		data[contentLength] = '\0';
+		if (!_AtSerial.ReadResponseQHTTPREAD(data, dataSize, 60000)) return RET_ERR(-1, E_UNKNOWN);
+		contentLength = strlen(data);
 	}
-	if ((parameter = _Module.WaitForResponse(NULL, 1000, "+QHTTPREAD: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(-1, E_UNKNOWN);
-	if (strcmp(parameter, "0") != 0) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPREAD: 0$", 1000, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	return RET_OK(contentLength);
 }
 
 bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 {
-	const char* parameter;
+	std::string response;
 	ArgumentParser parser;
 
-	if (strncmp("https:", url, 6) == 0) {
-		if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
-		if (_Module.WriteCommandAndWaitForResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (strncmp(url, "https:", 6) == 0) {
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 	}
 
-	if (_Module.WriteCommandAndWaitForResponse("AT+QHTTPCFG=\"requestheader\",1", "OK", 500) == NULL) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	if (!HttpSetUrl(url)) return RET_ERR(false, E_UNKNOWN);
 
@@ -976,14 +992,14 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QHTTPPOST=%d", header.Length() + strlen(data))) return RET_ERR(false, E_UNKNOWN);
-	_Module.WriteCommand(str.GetString());
-	if (_Module.WaitForResponse("CONNECT", 60000) == NULL) return RET_ERR(false, E_UNKNOWN);
-	_Module.Write(header.GetString());
-	_Module.Write(data);
-	if (_Module.WaitForResponse("OK", 1000) == NULL) return RET_ERR(false, E_UNKNOWN);
-
-	if ((parameter = _Module.WaitForResponse(NULL, 60000, "+QHTTPPOST: ", (ModuleSerial::WaitForResponseFlag)(ModuleSerial::WFR_START_WITH | ModuleSerial::WFR_REMOVE_START_WITH))) == NULL) return RET_ERR(false, E_UNKNOWN);
-	parser.Parse(parameter);
+	_AtSerial.WriteCommand(str.GetString());
+	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	const char* headerStr = header.GetString();
+	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
+	_AtSerial.WriteBinary((const byte*)data, strlen(data));
+	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPPOST: (.*)$", 60000, &response)) return RET_ERR(false, E_UNKNOWN);
+	parser.Parse(response.c_str());
 	if (parser.Size() < 1) return RET_ERR(false, E_UNKNOWN);
 	if (strcmp(parser[0], "0") != 0) return RET_ERR(false, E_UNKNOWN);
 	if (parser.Size() < 2) {

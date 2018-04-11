@@ -1,14 +1,11 @@
-#include <Arduino.h>
-#include "WioLTEforArduino.h"
+#include "../WioLTEConfig.h"
+#include "ArgumentParser.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-// ArgumentParser
-
-WioLTE::ArgumentParser::ArgumentParser()
+ArgumentParser::ArgumentParser()
 {
 }
 
-void WioLTE::ArgumentParser::Parse(const char* str)
+void ArgumentParser::Parse(const char* str)
 {
 	_Arguments.clear();
 
@@ -52,14 +49,12 @@ void WioLTE::ArgumentParser::Parse(const char* str)
 	}
 }
 
-int WioLTE::ArgumentParser::Size() const
+int ArgumentParser::Size() const
 {
 	return _Arguments.size();
 }
 
-const char* WioLTE::ArgumentParser::operator[](int index) const
+const char* ArgumentParser::operator[](int index) const
 {
 	return &_Arguments[index][0];
 }
-
-////////////////////////////////////////////////////////////////////////////////////////

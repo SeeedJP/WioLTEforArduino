@@ -1,42 +1,40 @@
-#include <Arduino.h>
+#include "../WioLTEConfig.h"
+#include "StringBuilder.h"
+
 #include <stdio.h>
 #include <stdarg.h>
-#include "WioLTEforArduino.h"
 
 #define STRING_MAX_SIZE		(200)
 
-////////////////////////////////////////////////////////////////////////////////////////
-// StringBuilder
-
-WioLTE::StringBuilder::StringBuilder()
+StringBuilder::StringBuilder()
 {
 	_Buffer.push_back('\0');
 }
 
-void WioLTE::StringBuilder::Clear()
+void StringBuilder::Clear()
 {
 	_Buffer.clear();
 	_Buffer.push_back('\0');
 }
 
-int WioLTE::StringBuilder::Length() const
+int StringBuilder::Length() const
 {
 	return _Buffer.size() - 1;
 }
 
-const char* WioLTE::StringBuilder::GetString() const
+const char* StringBuilder::GetString() const
 {
 	return &_Buffer[0];
 }
 
-void WioLTE::StringBuilder::Write(const char* str)
+void StringBuilder::Write(const char* str)
 {
 	int i = Length();
 	_Buffer.resize(_Buffer.size() + strlen(str));
 	strcpy(&_Buffer[i], str);
 }
 
-void WioLTE::StringBuilder::Write(const char* str, int length)
+void StringBuilder::Write(const char* str, int length)
 {
 	int i = Length();
 	_Buffer.resize(_Buffer.size() + length);
@@ -44,7 +42,7 @@ void WioLTE::StringBuilder::Write(const char* str, int length)
 	_Buffer[i + length] = '\0';
 }
 
-bool WioLTE::StringBuilder::WriteFormat(const char* format, ...)
+bool StringBuilder::WriteFormat(const char* format, ...)
 {
 	va_list arglist;
 	va_start(arglist, format);
@@ -58,5 +56,3 @@ bool WioLTE::StringBuilder::WriteFormat(const char* format, ...)
 
 	return true;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////

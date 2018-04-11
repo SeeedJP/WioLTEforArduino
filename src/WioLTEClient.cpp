@@ -1,4 +1,4 @@
-#include <Arduino.h>
+#include "WioLTEConfig.h"
 #include "WioLTEClient.h"
 
 #define RECEIVE_MAX_LENGTH	(1500)

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "config.h"
-#include <Arduino.h>
-#include "WioLTEforArduino.h"
-#include "Client.h"
+#include "WioLTE.h"
+#include <Client.h>
 #include <queue>
 
 class WioLTEClient : public Client {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "config.h"
-#include <Arduino.h>
+#include "WioLTEConfig.h"
+#include "Internal/AtSerial.h"
 #include <Seeed_ws2812.h>
 #include <time.h>
 #include <vector>
@@ -20,129 +20,6 @@
 
 class WioLTE
 {
-	/////////////////////////////////////////////////////////////////////
-	// Stopwatch
-
-private:
-	class Stopwatch
-	{
-	private:
-		unsigned long _BeginTime;
-		unsigned long _EndTime;
-
-	public:
-		Stopwatch() : _BeginTime(0), _EndTime(0)
-		{
-		}
-
-		void Start()
-		{
-			_BeginTime = millis();
-			_EndTime = 0;
-		}
-
-		void Stop()
-		{
-			_EndTime = millis();
-		}
-
-		unsigned long ElapsedMilliseconds() const
-		{
-			if (_EndTime == 0) {
-				return millis() - _BeginTime;
-			}
-			else {
-				return _EndTime - _BeginTime;
-			}
-		}
-
-	};
-
-	/////////////////////////////////////////////////////////////////////
-	// ArgumentParser
-
-private:
-	class ArgumentParser
-	{
-	private:
-		std::vector< std::vector<char> > _Arguments;
-
-	public:
-		ArgumentParser();
-		void Parse(const char* str);
-		int Size() const;
-		const char* operator[](int index) const;
-
-	};
-
-	/////////////////////////////////////////////////////////////////////
-	// StringBuilder
-
-private:
-	class StringBuilder
-	{
-	private:
-		std::vector<char> _Buffer;
-
-	public:
-		StringBuilder();
-		void Clear();
-		int Length() const;
-		const char* GetString() const;
-		void Write(const char* str);
-		void Write(const char* str, int length);
-		bool WriteFormat(const char* format, ...);
-
-	};
-
-	/////////////////////////////////////////////////////////////////////
-	// ModuleSerial
-
-private:
-	class ModuleSerial
-	{
-	private:
-		void SerialInit() { Serial1.begin(115200); }
-		bool SerialAvailable() const { return Serial1.available() >= 1 ? true : false; }
-		byte SerialRead() { return Serial1.read(); }
-		void SerialWrite(byte data) { Serial1.write(data); }
-		void SerialWrite(const byte* data, int dataSize) { Serial1.write(data, dataSize); }
-
-	public:
-		enum WaitForResponseFlag {
-			WFR_WITHOUT_DELIM		= 0x01,
-			WFR_START_WITH			= 0x02,
-			WFR_REMOVE_START_WITH	= 0x04,
-			WFR_GET_NULL_STRING		= 0x08,
-			WFR_TIMEOUT_FOR_BYTE	= 0x10,
-		};
-
-	public:
-		ModuleSerial();
-
-	private:
-		std::vector<char> _LastResponse;
-
-		void DiscardRead();
-		bool WaitForAvailable(Stopwatch* sw, long timeout) const;
-		int Read(byte* data, int dataSize);
-		const char* ReadResponse(const char* match, long timeout);
-
-	public:
-		void Init();
-		void Write(const byte* data, int dataSize);
-		void Write(const char* str);
-		int Read(byte* data, int dataSize, long timeout);
-
-		void WriteCommand(const char* command);
-		const char* WaitForResponse(const char* waitResponse, long timeout, const char* waitPattern = NULL, WaitForResponseFlag waitPatternFlag = (WaitForResponseFlag)0);
-		const char* WriteCommandAndWaitForResponse(const char* command, const char* response, long timeout);
-
-	};
-
-	/////////////////////////////////////////////////////////////////////
-	// WioLTE
-
 public:
 	enum ErrorCodeType {
 		E_OK = 0,
@@ -216,9 +93,13 @@ public:
 	static const int A5 = 5;
 
 private:
-	ModuleSerial _Module;
+	SerialAPI _SerialAPI;
+	AtSerial _AtSerial;
 	WS2812 _Led;
 	ErrorCodeType _LastErrorCode;
+
+	bool _PacketGprsNetworkRegistration;
+	bool _PacketEpsNetworkRegistration;
 
 private:
 	bool ReturnOk(bool value)
@@ -241,6 +122,9 @@ private:
 	int GetFirstIndexOfReceivedSMS();
 
 	bool HttpSetUrl(const char* url);
+
+public:
+	bool ReadResponseCallback(const char* response);	// Internal use only.
 
 public:
 	WioLTE();
