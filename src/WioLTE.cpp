@@ -367,6 +367,11 @@ void WioLTE::PowerSupplyLTE(bool on)
 	_LastErrorCode = E_OK;
 }
 
+void WioLTE::PowerSupplyCellular(bool on)
+{
+	PowerSupplyLTE(on);
+}
+
 void WioLTE::PowerSupplyGNSS(bool on)
 {
 	digitalWrite(ANT_PWR_PIN, on ? HIGH : LOW);
@@ -392,9 +397,11 @@ bool WioLTE::TurnOnOrReset()
 	std::string response;
 
 	if (!IsBusy()) {
+		DEBUG_PRINTLN("Reset()");
 		if (!Reset()) return RET_ERR(false, E_UNKNOWN);
 	}
 	else {
+		DEBUG_PRINTLN("TurnOn()");
 		if (!TurnOn()) return RET_ERR(false, E_UNKNOWN);
 	}
 
@@ -469,7 +476,7 @@ int WioLTE::GetIMEI(char* imei, int imeiSize)
 		imeiStr = response;
 	}
 
-	if (imeiStr.size() + 1 > imeiSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)imeiStr.size() + 1 > imeiSize) return RET_ERR(-1, E_UNKNOWN);
 	strcpy(imei, imeiStr.c_str());
 
 	return RET_OK((int)strlen(imei));
@@ -487,7 +494,7 @@ int WioLTE::GetIMSI(char* imsi, int imsiSize)
 		imsiStr = response;
 	}
 
-	if (imsiStr.size() + 1 > imsiSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)imsiStr.size() + 1 > imsiSize) return RET_ERR(-1, E_UNKNOWN);
 	strcpy(imsi, imsiStr.c_str());
 
 	return RET_OK((int)strlen(imsi));
@@ -511,7 +518,7 @@ int WioLTE::GetPhoneNumber(char* number, int numberSize)
 		numberStr = parser[1];
 	}
 
-	if (numberStr.size() + 1 > numberSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)numberStr.size() + 1 > numberSize) return RET_ERR(-1, E_UNKNOWN);
 	strcpy(number, numberStr.c_str());
 
 	return RET_OK((int)strlen(number));
@@ -681,14 +688,14 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	Stopwatch sw;
 	sw.Restart();
 	while (true) {
-		int resultCode;
+		//int resultCode;
 		int status;
 
 		_AtSerial.WriteCommand("AT+CGREG?");
 		if (!_AtSerial.ReadResponse("^\\+CGREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
 		parser.Parse(response.c_str());
 		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
-		resultCode = atoi(parser[0]);
+		//resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
 		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 		if (status == 0) return RET_ERR(false, E_UNKNOWN);
@@ -698,7 +705,7 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 		if (!_AtSerial.ReadResponse("^\\+CEREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
 		parser.Parse(response.c_str());
 		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
-		resultCode = atoi(parser[0]);
+		//resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
 		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 		if (status == 0) return RET_ERR(false, E_UNKNOWN);

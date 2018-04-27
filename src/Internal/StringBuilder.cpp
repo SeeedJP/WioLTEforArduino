@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #define STRING_MAX_SIZE		(200)
 
@@ -50,7 +51,7 @@ bool StringBuilder::WriteFormat(const char* format, ...)
 	int length = vsnprintf(str, sizeof (str), format, arglist);
 	va_end(arglist);
 
-	if (length < 0 || sizeof (str) - 1 <= length) return false;
+	if (length < 0 || (int)(sizeof (str) - 1) <= length) return false;
 
 	Write(str);
 

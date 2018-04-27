@@ -4,6 +4,7 @@
 #include "Debug.h"
 #include "slre.901d42c/slre.h"
 #include "../WioLTE.h"
+#include <string.h>
 
 #define READ_BYTE_TIMEOUT	(10)
 #define RESPONSE_MAX_LENGTH	(1024)
@@ -71,7 +72,7 @@ bool AtSerial::ReadResponseInternal(const char* pattern, unsigned long timeout, 
 
 	Stopwatch sw;
 	while (true) {
-		if (response->size() >= responseMaxLength + 2) {
+		if (response->size() >= (size_t)(responseMaxLength + 2)) {
 			DEBUG_PRINTLN("### OVERFLOW ###");
 			return false;
 		}
@@ -149,7 +150,7 @@ bool AtSerial::ReadResponseQHTTPREAD(char* data, int dataSize, unsigned long tim
 		if (!ReadResponseInternal(NULL, 1000, &response, dataSize - 2 - 1)) return false;
 		if (response == "OK") break;
 
-		if (contentLength + response.size() + 2 + 1 > dataSize) return false;
+		if (contentLength + response.size() + 2 + 1 > (size_t)dataSize) return false;
 		memcpy(&data[contentLength], response.c_str(), response.size());
 		strcpy(&data[contentLength + response.size()], "\r\n");
 		contentLength += response.size() + 2;

@@ -4,7 +4,6 @@
 #include "Internal/AtSerial.h"
 #include <Seeed_ws2812.h>
 #include <time.h>
-#include <vector>
 
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
 #define WIOLTE_UDP	(WioLTE::SOCKET_UDP)
@@ -17,6 +16,18 @@
 #define WIOLTE_A7	(WioLTE::A7)
 #define WIOLTE_A4	(WioLTE::A4)
 #define WIOLTE_A5	(WioLTE::A5)
+
+#define WIO_TCP		(WioLTE::SOCKET_TCP)
+#define WIO_UDP		(WioLTE::SOCKET_UDP)
+
+#define WIO_D38		(WioLTE::D38)
+#define WIO_D39		(WioLTE::D39)
+#define WIO_D20		(WioLTE::D20)
+#define WIO_D19		(WioLTE::D19)
+#define WIO_A6		(WioLTE::A6)
+#define WIO_A7		(WioLTE::A7)
+#define WIO_A4		(WioLTE::A4)
+#define WIO_A5		(WioLTE::A5)
 
 class WioLTE
 {
@@ -132,6 +143,7 @@ public:
 	void Init();
 	void LedSetRGB(byte red, byte green, byte blue);
 	void PowerSupplyLTE(bool on);
+	void PowerSupplyCellular(bool on);
 	void PowerSupplyGNSS(bool on);
 	void PowerSupplyGrove(bool on);
 	void PowerSupplySD(bool on);

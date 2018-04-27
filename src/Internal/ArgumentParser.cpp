@@ -1,5 +1,6 @@
 #include "../WioLTEConfig.h"
 #include "ArgumentParser.h"
+#include <string.h>
 
 ArgumentParser::ArgumentParser()
 {
@@ -34,9 +35,9 @@ void ArgumentParser::Parse(const char* str)
 
 	// Build arguments.
 	_Arguments.resize(commaList.size() + 1);
-	for (int i = 0; i < _Arguments.size(); i++) {
+	for (int i = 0; i < (int)_Arguments.size(); i++) {
 		const char* begin = i == 0 ? str : commaList[i - 1] + 1;
-		const char* end = i < commaList.size() ? commaList[i] : str + strlen(str);
+		const char* end = i < (int)commaList.size() ? commaList[i] : str + strlen(str);
 
 		if (end - begin >= 2 && *begin == '"' && *(end - 1) == '"') {
 			begin++;
