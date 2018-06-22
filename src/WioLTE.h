@@ -141,12 +141,13 @@ public:
 	WioLTE();
 	ErrorCodeType GetLastError() const;
 	void Init();
-	void LedSetRGB(byte red, byte green, byte blue);
-	void PowerSupplyLTE(bool on);
+	void PowerSupplyLTE(bool on);						// Keep compatibility
 	void PowerSupplyCellular(bool on);
 	void PowerSupplyGNSS(bool on);
+	void PowerSupplyLed(bool on);
 	void PowerSupplyGrove(bool on);
 	void PowerSupplySD(bool on);
+	void LedSetRGB(byte red, byte green, byte blue);
 	bool TurnOnOrReset();
 	bool TurnOff();
 	bool Sleep();

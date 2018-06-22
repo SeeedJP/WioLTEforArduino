@@ -354,13 +354,6 @@ void WioLTE::Init()
 	_PacketEpsNetworkRegistration = false;
 }
 
-void WioLTE::LedSetRGB(byte red, byte green, byte blue)
-{
-	_Led.WS2812SetRGB(0, red, green, blue);
-	_Led.WS2812Send();
-	_LastErrorCode = E_OK;
-}
-
 void WioLTE::PowerSupplyLTE(bool on)
 {
 	digitalWrite(MODULE_PWR_PIN, on ? HIGH : LOW);
@@ -378,6 +371,14 @@ void WioLTE::PowerSupplyGNSS(bool on)
 	_LastErrorCode = E_OK;
 }
 
+void WioLTE::PowerSupplyLed(bool on)
+{
+#if defined WIOLTE_SCHEMATIC_B
+	digitalWrite(RGB_LED_PWR_PIN, on ? HIGH : LOW);
+#endif // WIOLTE_SCHEMATIC_B
+	_LastErrorCode = E_OK;
+}
+
 void WioLTE::PowerSupplyGrove(bool on)
 {
 	digitalWrite(ENABLE_VCCB_PIN, on ? HIGH : LOW);
@@ -389,6 +390,13 @@ void WioLTE::PowerSupplySD(bool on)
 #if defined WIOLTE_SCHEMATIC_B
 	digitalWrite(SD_POWR_PIN, on ? HIGH : LOW);
 #endif // WIOLTE_SCHEMATIC_B
+	_LastErrorCode = E_OK;
+}
+
+void WioLTE::LedSetRGB(byte red, byte green, byte blue)
+{
+	_Led.WS2812SetRGB(0, red, green, blue);
+	_Led.WS2812Send();
 	_LastErrorCode = E_OK;
 }
 
