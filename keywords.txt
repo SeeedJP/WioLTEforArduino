@@ -2,11 +2,13 @@ WioLTE						KEYWORD1
 
 GetLastError				KEYWORD2
 Init						KEYWORD2
-LedSetRGB					KEYWORD2
 PowerSupplyLTE				KEYWORD2
+PowerSupplyCellular			KEYWORD2
 PowerSupplyGNSS				KEYWORD2
+PowerSupplyLed				KEYWORD2
 PowerSupplyGrove			KEYWORD2
 PowerSupplySD				KEYWORD2
+LedSetRGB					KEYWORD2
 TurnOnOrReset				KEYWORD2
 TurnOff						KEYWORD2
 Sleep						KEYWORD2
