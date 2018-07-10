@@ -336,7 +336,7 @@ void WioLTE::Init()
 	PinModeAndDefault(RESET_MODULE_PIN, OUTPUT, HIGH);
 
 	// Status Indication Pins
-	PinModeAndDefault(STATUS_PIN, INPUT);
+	PinModeAndDefault(STATUS_PIN, INPUT_PULLUP);
 
 	// UART Interface
 	PinModeAndDefault(DTR_PIN, OUTPUT, LOW);
