@@ -14,4 +14,4 @@
 #define WIOLTE_SCHEMATIC_B
 #endif
 
-//#define WIOLTE_DEBUG
+//#define WIO_DEBUG

@@ -712,11 +712,11 @@ bool WioLTE::WaitForCSRegistration(long timeout)
 	}
 
 	// for debug.
-#ifdef WIOLTE_DEBUG
+#ifdef WIO_DEBUG
 	char str[100];
 	sprintf(str, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
 	DEBUG_PRINTLN(str);
-#endif // WIOLTE_DEBUG
+#endif // WIO_DEBUG
 
 	return RET_OK(true);
 }
@@ -755,11 +755,11 @@ bool WioLTE::WaitForPSRegistration(long timeout)
 	}
 
 	// for debug.
-#ifdef WIOLTE_DEBUG
+#ifdef WIO_DEBUG
 	char str[100];
 	sprintf(str, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
 	DEBUG_PRINTLN(str);
-#endif // WIOLTE_DEBUG
+#endif // WIO_DEBUG
 
 	return RET_OK(true);
 }
@@ -772,11 +772,11 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (!WaitForPSRegistration(waitForRegistTimeout)) return RET_ERR(false, E_UNKNOWN);
 
 	// for debug.
-#ifdef WIOLTE_DEBUG
+#ifdef WIO_DEBUG
 	_AtSerial.WriteCommandAndReadResponse("AT+CREG?", "^OK$", 500, NULL);
 	_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL);
 	_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL);
-#endif // WIOLTE_DEBUG
+#endif // WIO_DEBUG
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false, E_UNKNOWN);
@@ -794,9 +794,9 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	}
 
 	// for debug.
-#ifdef WIOLTE_DEBUG
+#ifdef WIO_DEBUG
 	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIACT?", "^OK$", 150000, NULL)) return RET_ERR(false, E_UNKNOWN);
-#endif // WIOLTE_DEBUG
+#endif // WIO_DEBUG
 
 	return RET_OK(true);
 }

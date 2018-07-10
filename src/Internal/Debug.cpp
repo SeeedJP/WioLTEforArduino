@@ -1,7 +1,7 @@
 #include "../WioLTEConfig.h"
 #include "Debug.h"
 
-#ifdef WIOLTE_DEBUG
+#ifdef WIO_DEBUG
 
 void Debug::Print(const char* str)
 {
@@ -14,4 +14,4 @@ void Debug::Println (const char* str)
 	Print("\r\n");
 }
 
-#endif // WIOLTE_DEBUG
+#endif // WIO_DEBUG

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef WIOLTE_DEBUG
+#ifdef WIO_DEBUG
 
 #define DEBUG_PRINT(str)			Debug::Print(str)
 #define DEBUG_PRINTLN(str)			Debug::Println(str)
@@ -18,4 +18,4 @@ public:
 #define DEBUG_PRINT(str)
 #define DEBUG_PRINTLN(str)
 
-#endif // WIOLTE_DEBUG
+#endif // WIO_DEBUG
