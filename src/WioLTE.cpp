@@ -688,7 +688,7 @@ bool WioLTE::DeleteReceivedSMS()
 	return RET_OK(true);
 }
 
-bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password)
+bool WioLTE::WaitForCSRegistration(long timeout)
 {
 	std::string response;
 	ArgumentParser parser;
@@ -696,7 +696,39 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	Stopwatch sw;
 	sw.Restart();
 	while (true) {
-		//int resultCode;
+		int status;
+
+		_AtSerial.WriteCommand("AT+CREG?");
+		if (!_AtSerial.ReadResponse("^\\+CREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		parser.Parse(response.c_str());
+		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
+		//resultCode = atoi(parser[0]);
+		status = atoi(parser[1]);
+		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+		if (status == 0) return RET_ERR(false, E_UNKNOWN);
+		if (status == 1 || status == 5) break;
+
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+	}
+
+	// for debug.
+#ifdef WIOLTE_DEBUG
+	char str[100];
+	sprintf(str, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
+	DEBUG_PRINTLN(str);
+#endif // WIOLTE_DEBUG
+
+	return RET_OK(true);
+}
+
+bool WioLTE::WaitForPSRegistration(long timeout)
+{
+	std::string response;
+	ArgumentParser parser;
+
+	Stopwatch sw;
+	sw.Restart();
+	while (true) {
 		int status;
 
 		_AtSerial.WriteCommand("AT+CGREG?");
@@ -719,8 +751,25 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 		if (status == 0) return RET_ERR(false, E_UNKNOWN);
 		if (status == 1 || status == 5) break;
 
-		if (sw.ElapsedMilliseconds() >= 120000) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
 	}
+
+	// for debug.
+#ifdef WIOLTE_DEBUG
+	char str[100];
+	sprintf(str, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
+	DEBUG_PRINTLN(str);
+#endif // WIOLTE_DEBUG
+
+	return RET_OK(true);
+}
+
+bool WioLTE::Activate(const char* accessPointName, const char* userName, const char* password, long waitForRegistTimeout)
+{
+	std::string response;
+	ArgumentParser parser;
+
+	if (!WaitForPSRegistration(waitForRegistTimeout)) return RET_ERR(false, E_UNKNOWN);
 
 	// for debug.
 #ifdef WIOLTE_DEBUG
@@ -733,6 +782,7 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false, E_UNKNOWN);
 	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
+	Stopwatch sw;
 	sw.Restart();
 	while (true) {
 		_AtSerial.WriteCommand("AT+QIACT=1");

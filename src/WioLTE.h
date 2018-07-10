@@ -168,7 +168,9 @@ public:
 	int ReceiveSMS(char* message, int messageSize, char* dialNumber = NULL, int dialNumberSize = 0);
 	bool DeleteReceivedSMS();
 
-	bool Activate(const char* accessPointName, const char* userName, const char* password);
+	bool WaitForCSRegistration(long timeout = 120000);
+	bool WaitForPSRegistration(long timeout = 120000);
+	bool Activate(const char* accessPointName, const char* userName, const char* password, long waitForRegistTimeout = 120000);
 	bool Deactivate();
 
 	bool SyncTime(const char* host);
