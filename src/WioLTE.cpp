@@ -442,9 +442,20 @@ bool WioLTE::TurnOnOrReset()
 	return RET_OK(true);
 }
 
-bool WioLTE::TurnOff()
+bool WioLTE::TurnOff(long timeout)
 {
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QPOWD", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	std::string response;
+
+	Stopwatch sw;
+	sw.Restart();
+	while (true) {
+		_AtSerial.WriteCommand("AT+QPOWD");
+		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (response == "OK") break;
+		if (sw.ElapsedMilliseconds() >= timeout) return RET_ERR(false, E_UNKNOWN);
+		delay(POLLING_INTERVAL);
+	}
+
 	if (!_AtSerial.ReadResponse("^POWERED DOWN$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);

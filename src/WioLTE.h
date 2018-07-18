@@ -149,7 +149,7 @@ public:
 	void PowerSupplySD(bool on);
 	void LedSetRGB(byte red, byte green, byte blue);
 	bool TurnOnOrReset();
-	bool TurnOff();
+	bool TurnOff(long timeout = 60000);
 	bool Sleep();
 	bool Wakeup();
 
