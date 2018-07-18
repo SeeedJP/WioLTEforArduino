@@ -148,9 +148,15 @@ int WioLTE::ReturnError(int lineNumber, int value, WioLTE::ErrorCodeType errorCo
 	return value;
 }
 
-bool WioLTE::IsBusy() const
+bool WioLTE::IsRespond()
 {
-	return digitalRead(STATUS_PIN) ? true : false;
+	Stopwatch sw;
+	sw.Restart();
+	while (!_AtSerial.WriteCommandAndReadResponse("AT", "^OK$", 500, NULL)) {
+		if (sw.ElapsedMilliseconds() >= 2000) return false;
+	}
+
+	return true;
 }
 
 bool WioLTE::Reset()
@@ -164,7 +170,7 @@ bool WioLTE::Reset()
 	sw.Restart();
 	while (!_AtSerial.ReadResponse("^RDY$", 100, NULL)) {
 		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 10000) return false;
+		if (sw.ElapsedMilliseconds() >= 12000) return false;
 	}
 	DEBUG_PRINTLN("");
 
@@ -180,17 +186,9 @@ bool WioLTE::TurnOn()
 
 	Stopwatch sw;
 	sw.Restart();
-	while (IsBusy()) {
-		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 5000) return false;
-		delay(100);
-	}
-	DEBUG_PRINTLN("");
-
-	sw.Restart();
 	while (!_AtSerial.ReadResponse("^RDY$", 100, NULL)) {
 		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 10000) return false;
+		if (sw.ElapsedMilliseconds() >= 12000) return false;
 	}
 	DEBUG_PRINTLN("");
 
@@ -336,7 +334,7 @@ void WioLTE::Init()
 	PinModeAndDefault(RESET_MODULE_PIN, OUTPUT, HIGH);
 
 	// Status Indication Pins
-	PinModeAndDefault(STATUS_PIN, INPUT_PULLUP);
+	PinModeAndDefault(STATUS_PIN, INPUT);
 
 	// UART Interface
 	PinModeAndDefault(DTR_PIN, OUTPUT, LOW);
@@ -404,7 +402,7 @@ bool WioLTE::TurnOnOrReset()
 {
 	std::string response;
 
-	if (!IsBusy()) {
+	if (IsRespond()) {
 		DEBUG_PRINTLN("Reset()");
 		if (!Reset()) return RET_ERR(false, E_UNKNOWN);
 	}

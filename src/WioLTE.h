@@ -126,7 +126,7 @@ private:
 	bool ReturnError(int lineNumber, bool value, ErrorCodeType errorCode);
 	int ReturnError(int lineNumber, int value, ErrorCodeType errorCode);
 
-	bool IsBusy() const;
+	bool IsRespond();
 	bool Reset();
 	bool TurnOn();
 
