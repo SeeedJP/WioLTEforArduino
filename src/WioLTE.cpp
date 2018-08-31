@@ -838,8 +838,10 @@ bool WioLTE::GetLocation(double* longitude, double* latitude)
 	if (!_AtSerial.WriteCommandAndReadResponse("AT+QLOCCFG=\"contextid\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	_AtSerial.WriteCommand("AT+QCELLLOC");
-	if (!_AtSerial.ReadResponse("^\\+QCELLLOC: (.*)$", 60000, &response)) return RET_ERR(false, E_UNKNOWN);
-	parser.Parse(response.c_str());
+	if (!_AtSerial.ReadResponse("^(\\+QCELLLOC: .*|\\+CME ERROR: .*)$", 60000, &response)) return RET_ERR(false, E_UNKNOWN);
+	if (strncmp(response.c_str(), "+QCELLLOC: ", 11) != 0) return RET_ERR(false, E_UNKNOWN);
+
+	parser.Parse(&response.c_str()[11]);
 	if (parser.Size() != 2) return RET_ERR(false, E_UNKNOWN);
 	*longitude = atof(parser[0]);
 	*latitude = atof(parser[1]);
