@@ -9,6 +9,8 @@
 #define READ_BYTE_TIMEOUT	(10)
 #define RESPONSE_MAX_LENGTH	(1024)
 
+#define WRITE_BINARY_WAIT_SIZE	(80)
+
 #define CHAR_CR (0x0d)
 #define CHAR_LF (0x0a)
 
@@ -34,6 +36,11 @@ void AtSerial::WriteBinary(const byte* data, int dataSize)
 
 	for (int i = 0; i < dataSize; i++) {
 		_Serial->Write(data[i]);
+
+		if (i % WRITE_BINARY_WAIT_SIZE == WRITE_BINARY_WAIT_SIZE - 1)
+		{
+			_Serial->Flush();
+		}
 	}
 }
 

@@ -11,5 +11,6 @@ public:
 	void Write(byte data) { _Serial->write(data); }
 	bool Available() const { return _Serial->available() >= 1 ? true : false; }
 	byte Read() { return _Serial->read(); }
+	void Flush() { _Serial->flush(); }
 
 };
