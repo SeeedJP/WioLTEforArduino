@@ -192,3 +192,5 @@ public:
 	static void SystemReset();
 
 };
+
+typedef WioLTE WioCellular;
