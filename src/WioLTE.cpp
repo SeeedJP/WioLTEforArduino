@@ -429,13 +429,7 @@ bool WioLTE::TurnOnOrReset()
 	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
-	sw.Restart();
-	while (true) {
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+CPIN?", "^(OK|\\+CME ERROR: .*)$", 5000, &response)) return RET_ERR(false, E_UNKNOWN);
-		if (response == "OK") break;
-		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
-	}
+	if (!_AtSerial.ReadResponse("^\\+CPIN: READY$", 10000, NULL)) return RET_ERR(false, E_UNKNOWN);
 
 	return RET_OK(true);
 }
@@ -736,14 +730,8 @@ bool WioLTE::WaitForCSRegistration(long timeout)
 		if (status == 1 || status == 5) break;
 
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		delay(POLLING_INTERVAL);
 	}
-
-	// for debug.
-#ifdef WIO_DEBUG
-	char str[100];
-	sprintf(str, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
-	DEBUG_PRINTLN(str);
-#endif // WIO_DEBUG
 
 	return RET_OK(true);
 }
@@ -779,14 +767,8 @@ bool WioLTE::WaitForPSRegistration(long timeout)
 		if (status == 1 || status == 5) break;
 
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		delay(POLLING_INTERVAL);
 	}
-
-	// for debug.
-#ifdef WIO_DEBUG
-	char str[100];
-	sprintf(str, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
-	DEBUG_PRINTLN(str);
-#endif // WIO_DEBUG
 
 	return RET_OK(true);
 }
@@ -795,21 +777,29 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 {
 	std::string response;
 	ArgumentParser parser;
-
-	if (!WaitForPSRegistration(waitForRegistTimeout)) return RET_ERR(false, E_UNKNOWN);
-
-	// for debug.
-#ifdef WIO_DEBUG
-	_AtSerial.WriteCommandAndReadResponse("AT+CREG?", "^OK$", 500, NULL);
-	_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL);
-	_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL);
-#endif // WIO_DEBUG
-
-	StringBuilder str;
-	if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",1", accessPointName, userName, password)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-
 	Stopwatch sw;
+
+	if (!WaitForPSRegistration(0)) {
+		StringBuilder str;
+		if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",3", accessPointName, userName, password)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+
+		sw.Restart();
+
+		if (!WaitForPSRegistration(waitForRegistTimeout)) return RET_ERR(false, E_UNKNOWN);
+
+		// for debug.
+#ifdef WIO_DEBUG
+		char dbg[100];
+		sprintf(dbg, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
+		DEBUG_PRINTLN(dbg);
+
+		_AtSerial.WriteCommandAndReadResponse("AT+CREG?", "^OK$", 500, NULL);
+		_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL);
+		_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL);
+#endif // WIO_DEBUG
+	}
+
 	sw.Restart();
 	while (true) {
 		_AtSerial.WriteCommand("AT+QIACT=1");
