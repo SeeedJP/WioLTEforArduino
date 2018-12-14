@@ -15,8 +15,8 @@
 #define CONNECT_ID_NUM				(12)
 #define POLLING_INTERVAL			(100)
 
-#define HTTP_POST_USER_AGENT		"QUECTEL_MODULE"
-#define HTTP_POST_CONTENT_TYPE		"application/json"
+#define HTTP_USER_AGENT				"QUECTEL_MODULE"
+#define HTTP_CONTENT_TYPE			"application/json"
 
 #define LINEAR_SCALE(val, inMin, inMax, outMin, outMax)	(((val) - (inMin)) / ((inMax) - (inMin)) * ((outMax) - (outMin)) + (outMin))
 
@@ -992,6 +992,16 @@ bool WioLTE::SocketClose(int connectId)
 
 int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 {
+	WioLTEHttpHeader header;
+	header["Accept"] = "*/*";
+	header["User-Agent"] = HTTP_USER_AGENT;
+	header["Connection"] = "Keep-Alive";
+
+	return HttpGet(url, data, dataSize, header);
+}
+
+int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpHeader& header)
+{
 	std::string response;
 	ArgumentParser parser;
 
@@ -1002,11 +1012,46 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 	}
 
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",0", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",1", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
 	if (!HttpSetUrl(url)) return RET_ERR(-1, E_UNKNOWN);
 
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPGET", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	const char* host;
+	int hostLength;
+	const char* uri;
+	int uriLength;
+	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false, E_UNKNOWN);
+
+	StringBuilder headerSb;
+	headerSb.Write("GET ");
+	if (uriLength <= 0) {
+		headerSb.Write("/");
+	}
+	else {
+		headerSb.Write(uri, uriLength);
+	}
+	headerSb.Write(" HTTP/1.1\r\n");
+	headerSb.Write("Host: ");
+	headerSb.Write(host, hostLength);
+	headerSb.Write("\r\n");
+	for (auto it = header.begin(); it != header.end(); it++) {
+		headerSb.Write(it->first.c_str());
+		headerSb.Write(": ");
+		headerSb.Write(it->second.c_str());
+		headerSb.Write("\r\n");
+	}
+	headerSb.Write("\r\n");
+	DEBUG_PRINTLN("=== header");
+	DEBUG_PRINTLN(headerSb.GetString());
+	DEBUG_PRINTLN("===");
+
+	StringBuilder str;
+	if (!str.WriteFormat("AT+QHTTPGET=60,%d", headerSb.Length())) return RET_ERR(false, E_UNKNOWN);
+	_AtSerial.WriteCommand(str.GetString());
+	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	const char* headerStr = headerSb.GetString();
+	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
+	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);
 	if (!_AtSerial.ReadResponse("^\\+QHTTPGET: (.*)$", 60000, &response)) return RET_ERR(-1, E_UNKNOWN);
 
 	parser.Parse(response.c_str());
@@ -1034,6 +1079,17 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize)
 
 bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 {
+	WioLTEHttpHeader header;
+	header["Accept"] = "*/*";
+	header["User-Agent"] = HTTP_USER_AGENT;
+	header["Connection"] = "Keep-Alive";
+	header["Content-Type"] = HTTP_CONTENT_TYPE;
+
+	return HttpPost(url, data, responseCode, header);
+}
+
+bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header)
+{
 	std::string response;
 	ArgumentParser parser;
 
@@ -1054,31 +1110,35 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 	int uriLength;
 	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false, E_UNKNOWN);
 
-
-	StringBuilder header;
-	header.Write("POST ");
+	StringBuilder headerSb;
+	headerSb.Write("POST ");
 	if (uriLength <= 0) {
-		header.Write("/");
+		headerSb.Write("/");
 	}
 	else {
-		header.Write(uri, uriLength);
+		headerSb.Write(uri, uriLength);
 	}
-	header.Write(" HTTP/1.1\r\n");
-	header.Write("Host: ");
-	header.Write(host, hostLength);
-	header.Write("\r\n");
-	header.Write("Accept: */*\r\n");
-	header.Write("User-Agent: "HTTP_POST_USER_AGENT"\r\n");
-	header.Write("Connection: Keep-Alive\r\n");
-	header.Write("Content-Type: "HTTP_POST_CONTENT_TYPE"\r\n");
-	if (!header.WriteFormat("Content-Length: %d\r\n", strlen(data))) return RET_ERR(false, E_UNKNOWN);
-	header.Write("\r\n");
+	headerSb.Write(" HTTP/1.1\r\n");
+	headerSb.Write("Host: ");
+	headerSb.Write(host, hostLength);
+	headerSb.Write("\r\n");
+	if (!headerSb.WriteFormat("Content-Length: %d\r\n", strlen(data))) return RET_ERR(false, E_UNKNOWN);
+	for (auto it = header.begin(); it != header.end(); it++) {
+		headerSb.Write(it->first.c_str());
+		headerSb.Write(": ");
+		headerSb.Write(it->second.c_str());
+		headerSb.Write("\r\n");
+	}
+	headerSb.Write("\r\n");
+	DEBUG_PRINTLN("=== header");
+	DEBUG_PRINTLN(headerSb.GetString());
+	DEBUG_PRINTLN("===");
 
 	StringBuilder str;
-	if (!str.WriteFormat("AT+QHTTPPOST=%d", header.Length() + strlen(data))) return RET_ERR(false, E_UNKNOWN);
+	if (!str.WriteFormat("AT+QHTTPPOST=%d", headerSb.Length() + strlen(data))) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
 	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
-	const char* headerStr = header.GetString();
+	const char* headerStr = headerSb.GetString();
 	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
 	_AtSerial.WriteBinary((const byte*)data, strlen(data));
 	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);

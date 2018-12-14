@@ -4,6 +4,7 @@
 #include "Internal/AtSerial.h"
 #include <Seeed_ws2812.h>
 #include <time.h>
+#include "WioLTEHttpHeader.h"
 
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
 #define WIOLTE_UDP	(WioLTE::SOCKET_UDP)
@@ -187,7 +188,9 @@ public:
 	bool SocketClose(int connectId);
 
 	int HttpGet(const char* url, char* data, int dataSize);
+	int HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpHeader& header);
 	bool HttpPost(const char* url, const char* data, int* responseCode);
+	bool HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header);
 
 public:
 	static void SystemReset();
