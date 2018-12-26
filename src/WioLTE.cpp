@@ -990,20 +990,23 @@ bool WioLTE::SocketClose(int connectId)
 	return RET_OK(true);
 }
 
-int WioLTE::HttpGet(const char* url, char* data, int dataSize)
+int WioLTE::HttpGet(const char* url, char* data, int dataSize, long timeout)
 {
 	WioLTEHttpHeader header;
 	header["Accept"] = "*/*";
 	header["User-Agent"] = HTTP_USER_AGENT;
 	header["Connection"] = "Keep-Alive";
 
-	return HttpGet(url, data, dataSize, header);
+	return HttpGet(url, data, dataSize, header, timeout);
 }
 
-int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpHeader& header)
+int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpHeader& header, long timeout)
 {
 	std::string response;
 	ArgumentParser parser;
+
+	int timeoutSec = timeout / 1000;
+	if (timeout % 1000 > 0) timeoutSec++;
 
 	if (strncmp(url, "https:", 6) == 0) {
 		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
@@ -1046,13 +1049,13 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpH
 	DEBUG_PRINTLN("===");
 
 	StringBuilder str;
-	if (!str.WriteFormat("AT+QHTTPGET=60,%d", headerSb.Length())) return RET_ERR(false, E_UNKNOWN);
+	if (!str.WriteFormat("AT+QHTTPGET=%d,%d", timeoutSec, headerSb.Length())) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
 	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
 	const char* headerStr = headerSb.GetString();
 	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
 	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^\\+QHTTPGET: (.*)$", 60000, &response)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPGET: (.*)$", (timeoutSec + 1) * 1000, &response)) return RET_ERR(-1, E_UNKNOWN);
 
 	parser.Parse(response.c_str());
 	if (parser.Size() < 1) return RET_ERR(-1, E_UNKNOWN);
@@ -1077,7 +1080,7 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpH
 	return RET_OK(contentLength);
 }
 
-bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
+bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, long timeout)
 {
 	WioLTEHttpHeader header;
 	header["Accept"] = "*/*";
@@ -1085,13 +1088,16 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode)
 	header["Connection"] = "Keep-Alive";
 	header["Content-Type"] = HTTP_CONTENT_TYPE;
 
-	return HttpPost(url, data, responseCode, header);
+	return HttpPost(url, data, responseCode, header, timeout);
 }
 
-bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header)
+bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header, long timeout)
 {
 	std::string response;
 	ArgumentParser parser;
+
+	int timeoutSec = timeout / 1000;
+	if (timeout % 1000 > 0) timeoutSec++;
 
 	if (strncmp(url, "https:", 6) == 0) {
 		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
@@ -1135,14 +1141,14 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	DEBUG_PRINTLN("===");
 
 	StringBuilder str;
-	if (!str.WriteFormat("AT+QHTTPPOST=%d", headerSb.Length() + strlen(data))) return RET_ERR(false, E_UNKNOWN);
+	if (!str.WriteFormat("AT+QHTTPPOST=%d,%d,%d", headerSb.Length() + strlen(data), timeoutSec, timeoutSec)) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
 	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
 	const char* headerStr = headerSb.GetString();
 	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
 	_AtSerial.WriteBinary((const byte*)data, strlen(data));
 	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^\\+QHTTPPOST: (.*)$", 60000, &response)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPPOST: (.*)$", (timeoutSec + 1) * 1000, &response)) return RET_ERR(false, E_UNKNOWN);
 	parser.Parse(response.c_str());
 	if (parser.Size() < 1) return RET_ERR(false, E_UNKNOWN);
 	if (strcmp(parser[0], "0") != 0) return RET_ERR(false, E_UNKNOWN);

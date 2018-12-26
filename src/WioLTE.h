@@ -187,10 +187,10 @@ public:
 	int SocketReceive(int connectId, char* data, int dataSize, long timeout);
 	bool SocketClose(int connectId);
 
-	int HttpGet(const char* url, char* data, int dataSize);
-	int HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpHeader& header);
-	bool HttpPost(const char* url, const char* data, int* responseCode);
-	bool HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header);
+	int HttpGet(const char* url, char* data, int dataSize, long timeout = 60000);
+	int HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpHeader& header, long timeout = 60000);
+	bool HttpPost(const char* url, const char* data, int* responseCode, long timeout = 60000);
+	bool HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header, long timeout = 60000);
 
 public:
 	static void SystemReset();
