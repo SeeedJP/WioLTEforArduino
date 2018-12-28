@@ -40,6 +40,7 @@ void AtSerial::WriteBinary(const byte* data, int dataSize)
 		if (i % WRITE_BINARY_WAIT_SIZE == WRITE_BINARY_WAIT_SIZE - 1)
 		{
 			_Serial->Flush();
+			delay(1);
 		}
 	}
 }
