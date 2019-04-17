@@ -1,4 +1,8 @@
-#include <SD.h>		// https://github.com/Seeed-Studio/SD
+#if defined ARDUINO_ARCH_STM32F4
+#include <SD.h>                    // https://github.com/Seeed-Studio/SD
+#elif defined ARDUINO_ARCH_STM32
+#include <SDforWioLTE.h>           // https://github.com/SeeedJP/SDforWioLTE
+#endif
 
 #define FILE_NAME "test.txt"
 

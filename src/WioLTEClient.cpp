@@ -25,7 +25,13 @@ int WioLTEClient::connect(IPAddress ip, uint16_t port)
 {
 	if (connected()) return CONNECT_INVALID_RESPONSE;	// Already connected.
 
-	String ipStr = ip.toString();
+	String ipStr = String(ip[0]);
+	ipStr += ".";
+	ipStr += String(ip[1]);
+	ipStr += ".";
+	ipStr += String(ip[2]);
+	ipStr += ".";
+	ipStr += String(ip[3]);
 	int connectId = _Wio->SocketOpen(ipStr.c_str(), port, WioLTE::SOCKET_TCP);
 	if (connectId < 0) return CONNECT_INVALID_SERVER;
 	_ConnectId = connectId;

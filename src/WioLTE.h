@@ -2,7 +2,11 @@
 
 #include "WioLTEConfig.h"
 #include "Internal/AtSerial.h"
+#if defined ARDUINO_ARCH_STM32F4
 #include <Seeed_ws2812.h>
+#elif defined ARDUINO_ARCH_STM32
+#include "Internal/WioSK6812.h"
+#endif
 #include <time.h>
 #include "WioLTEHttpHeader.h"
 
@@ -107,7 +111,11 @@ public:
 private:
 	SerialAPI _SerialAPI;
 	AtSerial _AtSerial;
+#if defined ARDUINO_ARCH_STM32F4
 	WS2812 _Led;
+#elif defined ARDUINO_ARCH_STM32
+	WioSK6812 _Led;
+#endif
 	ErrorCodeType _LastErrorCode;
 
 	bool _PacketGprsNetworkRegistration;

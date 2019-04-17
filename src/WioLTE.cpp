@@ -4,8 +4,12 @@
 #include "Internal/Debug.h"
 #include "Internal/StringBuilder.h"
 #include "Internal/ArgumentParser.h"
+#if defined ARDUINO_ARCH_STM32F4
 #include "Internal/CMSIS/cmsis_gcc.h"
 #include "Internal/CMSIS/core_cm4.h"
+#elif defined ARDUINO_ARCH_STM32
+#include <stm32f4xx_hal.h>
+#endif
 #include <stdio.h>
 #include <limits.h>
 
@@ -22,6 +26,10 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
+
+#if defined ARDUINO_ARCH_STM32
+typedef uint32_t WiringPinMode;
+#endif // ARDUINO_ARCH_STM32
 
 static void PinModeAndDefault(int pin, WiringPinMode mode)
 {
@@ -309,9 +317,19 @@ bool WioLTE::ReadResponseCallback(const char* response)
 	return false;
 }
 
+#if defined ARDUINO_ARCH_STM32F4
 WioLTE::WioLTE() : _SerialAPI(&Serial1), _AtSerial(&_SerialAPI, this), _Led(1, RGB_LED_PIN), _LastErrorCode(E_OK)
 {
 }
+#elif defined ARDUINO_ARCH_STM32
+#define PINNAME_TO_PIN(port, pin) ((port - 'A') * 16 + pin)
+#define MODULE_UART_TX_PIN  PINNAME_TO_PIN('A', 2)	// out
+#define MODULE_UART_RX_PIN  PINNAME_TO_PIN('A', 3)	// in
+static HardwareSerial SerialModule(MODULE_UART_RX_PIN, MODULE_UART_TX_PIN);
+WioLTE::WioLTE() : _SerialAPI(&SerialModule), _AtSerial(&_SerialAPI, this), _Led(), _LastErrorCode(E_OK)
+{
+}
+#endif
 
 WioLTE::ErrorCodeType WioLTE::GetLastError() const
 {
@@ -345,7 +363,11 @@ void WioLTE::Init()
 	//PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
   
 	_SerialAPI.Begin(115200);
+#if defined ARDUINO_ARCH_STM32F4
 	_Led.begin();
+#elif defined ARDUINO_ARCH_STM32
+	PinModeAndDefault(RGB_LED_PIN, OUTPUT, HIGH);
+#endif
 	_LastErrorCode = E_OK;
 
 	_PacketGprsNetworkRegistration = false;
@@ -393,8 +415,14 @@ void WioLTE::PowerSupplySD(bool on)
 
 void WioLTE::LedSetRGB(byte red, byte green, byte blue)
 {
+#if defined ARDUINO_ARCH_STM32F4
 	_Led.WS2812SetRGB(0, red, green, blue);
 	_Led.WS2812Send();
+#elif defined ARDUINO_ARCH_STM32
+	_Led.Reset();
+	_Led.SetSingleLED(red, green, blue);
+#endif
+
 	_LastErrorCode = E_OK;
 }
 
