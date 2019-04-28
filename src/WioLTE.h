@@ -200,6 +200,11 @@ public:
 	bool HttpPost(const char* url, const char* data, int* responseCode, long timeout = 60000);
 	bool HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header, long timeout = 60000);
 
+	// GNSS functionality (may not work on JP boards)
+	bool enableGNSS();
+	bool disableGNSS();
+	bool getGNSSLocation(double* longitude, double* latitude, double* altitude = NULL, char* utcTime = NULL);
+
 public:
 	static void SystemReset();
 

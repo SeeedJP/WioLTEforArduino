@@ -1190,6 +1190,118 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	return RET_OK(true);
 }
 
+bool WioLTE::enableGNSS()
+{
+	int errCounts = 0;
+
+	// Open GNSS funtion
+	while (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS?", "^\\+QGPS: 1$", 2000, NULL)) {
+		errCounts++;
+		if (errCounts > 5){
+			return RET_ERR(false, E_UNKNOWN);
+		}
+		_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 2000, NULL);
+		delay(1000);
+	}
+
+	return RET_OK(true);
+}
+
+bool WioLTE::disableGNSS()
+{
+	int errCounts = 0;
+
+	// Disable GNSS funtion
+	while (!_AtSerial.WriteCommandAndReadResponse("AT+QGNSSC?", "^\\+QGNSSC: 0$", 2000, NULL)) {
+		errCounts++;
+		if (errCounts > 100){
+			return RET_ERR(false, E_UNKNOWN);
+		}
+		_AtSerial.WriteCommandAndReadResponse("AT+QGNSSC=0", "^OK$", 2000, NULL);
+		delay(1000);
+	}
+
+	return RET_OK(true);
+}
+
+double coordinateToDecimal(double dddmm)
+{
+	int deg = (int) dddmm / 100;
+	double min = dddmm - deg * 100.0;
+	return deg + min / 60.0;
+}
+
+bool WioLTE::getGNSSLocation(double* longitude, double* latitude, double* altitude, char* utcTime)
+{
+	std::string response;
+	ArgumentParser parser;
+
+	// send the get GPS Location command
+	_AtSerial.WriteCommand("AT+QGPSLOC?");
+
+	// read the response (we are interested in the line starting wiht "+QGPSLOC")
+	int tries = 0;
+	while (true) {
+		if (!_AtSerial.ReadResponse("^(\\+QGPSLOC: .*|\\+CME ERROR: .*|OK)$", 5000, &response)) {
+			return RET_ERR(false, E_UNKNOWN);
+		}
+
+		if (response.find("+QGPSLOC: ") == 0) {
+			// found GPS location line
+			break;
+		}
+
+		if (response.find("+CME ERROR") != std::string::npos) {
+			// found error line
+			return RET_ERR(false, E_UNKNOWN);
+		}
+
+		if (++tries >= 5) {
+			// too much garbage
+			return RET_ERR(false, E_UNKNOWN);
+		}
+	}
+
+	// parse the response: utc time, latitude, longitude, horizontal precision, altitude
+	parser.Parse(&response.c_str()[10]);
+	if (parser.Size() < 5) {
+		return RET_ERR(false, E_UNKNOWN);
+	}
+
+	// utc time
+	if (utcTime != NULL) {
+		strcpy(utcTime, parser[0]);
+	}
+
+	// latitude
+	if (latitude != NULL) {
+		*latitude = coordinateToDecimal(atof(parser[1]));
+
+		if (*(parser[1] + strlen(parser[1]) - 1) != 'N') {
+			*latitude = 0.0 - *latitude;
+		}
+	}
+
+	// longitude
+	if (longitude != NULL) {
+		*longitude = coordinateToDecimal(atof(parser[2]));
+
+		if (*(parser[2] + strlen(parser[2]) - 1) != 'E') {
+			*longitude = 0.0 - *longitude;
+		}
+	}
+
+	// altitude
+	if (altitude != NULL) {
+		*altitude = atof(parser[4]);
+	}
+
+	// consume the OK response
+	_AtSerial.ReadResponse("^OK$", 500, NULL);
+
+	return RET_OK(true);
+}
+
 void WioLTE::SystemReset()
 {
 	NVIC_SystemReset();
