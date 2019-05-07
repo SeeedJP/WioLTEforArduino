@@ -5,6 +5,8 @@
 WioLTE Wio;
 
 void setup() {
+  delay(200);
+
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
 
@@ -13,8 +15,6 @@ void setup() {
 
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyLTE(true);
-  delay(500);
-
   SerialUSB.println("### Power supply GNSS.");
   Wio.PowerSupplyGNSS(true);
   delay(500);
@@ -22,25 +22,26 @@ void setup() {
   SerialUSB.println("### Turn on or reset.");
   if (!Wio.TurnOnOrReset()) {
     SerialUSB.println("### ERROR! ###");
-    //return;
+    return;
   }
 
   SerialUSB.println("### Enable GNSS.");
-  if (!Wio.enableGNSS()) {
+  if (!Wio.EnableGNSS()) {
     SerialUSB.println("### ERROR! ###");
+	return;
   }
 
   SerialUSB.println("### Setup completed.");
 }
 
 void loop() {
-  double longitude = 0.0;
-  double latitude = 0.0;
-  double altitude = 0.0;
-  char utcTime[12];
+  double longitude;
+  double latitude;
+  double altitude;
+  struct tm utc;
 
   SerialUSB.println("### Get GNSS location.");
-  bool getLocation = Wio.getGNSSLocation(&longitude, &latitude, &altitude, utcTime);
+  bool getLocation = Wio.GetGNSSLocation(&longitude, &latitude, &altitude, &utc);
 
   if (getLocation) {
     SerialUSB.print("    long: ");
@@ -49,10 +50,13 @@ void loop() {
     SerialUSB.println(latitude, 6);
     SerialUSB.print("    altitude: ");
     SerialUSB.println(altitude, 6);
-    SerialUSB.print("    UTC time: ");
-    SerialUSB.println(utcTime);
-
-  } else {
+    SerialUSB.print("    utc: ");
+    SerialUSB.println(asctime(&utc));
+  }
+  else if (Wio.GetLastError() == WioLTE::E_GNSS_NOT_FIXED) {
+    SerialUSB.println("### NOT FIXED. ###");
+  }
+  else {
     SerialUSB.println("### ERROR! ###");
   }
 

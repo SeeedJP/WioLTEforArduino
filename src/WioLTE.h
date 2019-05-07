@@ -40,6 +40,8 @@ public:
 	enum ErrorCodeType {
 		E_OK = 0,
 		E_UNKNOWN,
+		E_TIMEOUT,
+		E_GNSS_NOT_FIXED,
 	};
 
 	enum SocketType {
@@ -201,9 +203,9 @@ public:
 	bool HttpPost(const char* url, const char* data, int* responseCode, const WioLTEHttpHeader& header, long timeout = 60000);
 
 	// GNSS functionality (may not work on JP boards)
-	bool enableGNSS();
-	bool disableGNSS();
-	bool getGNSSLocation(double* longitude, double* latitude, double* altitude = NULL, char* utcTime = NULL);
+	bool EnableGNSS();
+	bool DisableGNSS();
+	bool GetGNSSLocation(double* longitude, double* latitude, double* altitude = NULL, struct tm* tim = NULL);
 
 public:
 	static void SystemReset();

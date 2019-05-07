@@ -65,6 +65,11 @@ static bool ConvertHexToBytes(const char* hex, byte* data, int dataSize)
 	return true;
 }
 
+static int Convert2DigitsToInt(const char* digits)
+{
+	return (digits[0] - '0') * 10 + (digits[1] - '0');
+}
+
 static int NumberOfDigits(int value)
 {
 	int digits = 0;
@@ -127,6 +132,13 @@ static bool SmAddressFieldToString(const byte* addressField, char* str, int strS
 	str[addressLength] = '\0';
 
 	return true;
+}
+
+static double GnssCoordinateToDecimal(double dddmm)
+{
+	int deg = (int)dddmm / 100;
+	double min = dddmm - deg * 100.0;
+	return deg + min / 60.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1190,104 +1202,61 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	return RET_OK(true);
 }
 
-bool WioLTE::enableGNSS()
+bool WioLTE::EnableGNSS()
 {
-	int errCounts = 0;
-
-	// Open GNSS funtion
-	while (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS?", "^\\+QGPS: 1$", 2000, NULL)) {
-		errCounts++;
-		if (errCounts > 5){
-			return RET_ERR(false, E_UNKNOWN);
-		}
-		_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 2000, NULL);
-		delay(1000);
-	}
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
 
-bool WioLTE::disableGNSS()
+bool WioLTE::DisableGNSS()
 {
-	int errCounts = 0;
-
-	// Disable GNSS funtion
-	while (!_AtSerial.WriteCommandAndReadResponse("AT+QGNSSC?", "^\\+QGNSSC: 0$", 2000, NULL)) {
-		errCounts++;
-		if (errCounts > 100){
-			return RET_ERR(false, E_UNKNOWN);
-		}
-		_AtSerial.WriteCommandAndReadResponse("AT+QGNSSC=0", "^OK$", 2000, NULL);
-		delay(1000);
-	}
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QGPSEND", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
 
-double coordinateToDecimal(double dddmm)
-{
-	int deg = (int) dddmm / 100;
-	double min = dddmm - deg * 100.0;
-	return deg + min / 60.0;
-}
-
-bool WioLTE::getGNSSLocation(double* longitude, double* latitude, double* altitude, char* utcTime)
+bool WioLTE::GetGNSSLocation(double* longitude, double* latitude, double* altitude, struct tm* tim)
 {
 	std::string response;
-	ArgumentParser parser;
+	std::string locStr;
 
-	// send the get GPS Location command
 	_AtSerial.WriteCommand("AT+QGPSLOC?");
-
-	// read the response (we are interested in the line starting wiht "+QGPSLOC")
-	int tries = 0;
 	while (true) {
-		if (!_AtSerial.ReadResponse("^(\\+QGPSLOC: .*|\\+CME ERROR: .*|OK)$", 5000, &response)) {
-			return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|\\+QGPSLOC: .*|\\+CME ERROR: .*)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
+		if (response == "OK") break;
+		if (strncmp(response.c_str(), "+CME ERROR: ", 12) == 0) {
+			if (strcmp(&response.c_str()[12], "516") == 0) {	// Not fixed now
+				return RET_ERR(false, E_GNSS_NOT_FIXED);
+			}
+			else {
+				return RET_ERR(false, E_UNKNOWN);
+			}
 		}
-
-		if (response.find("+QGPSLOC: ") == 0) {
-			// found GPS location line
-			break;
-		}
-
-		if (response.find("+CME ERROR") != std::string::npos) {
-			// found error line
-			return RET_ERR(false, E_UNKNOWN);
-		}
-
-		if (++tries >= 5) {
-			// too much garbage
-			return RET_ERR(false, E_UNKNOWN);
-		}
+		locStr = response;
 	}
 
 	// parse the response: utc time, latitude, longitude, horizontal precision, altitude
-	parser.Parse(&response.c_str()[10]);
-	if (parser.Size() < 5) {
-		return RET_ERR(false, E_UNKNOWN);
-	}
-
-	// utc time
-	if (utcTime != NULL) {
-		strcpy(utcTime, parser[0]);
-	}
+	if (strlen(locStr.c_str()) < 10) return RET_ERR(false, E_UNKNOWN);
+	ArgumentParser parser;
+	parser.Parse(&locStr.c_str()[10]);
+	if (parser.Size() < 5) return RET_ERR(false, E_UNKNOWN);
 
 	// latitude
 	if (latitude != NULL) {
-		*latitude = coordinateToDecimal(atof(parser[1]));
+		*latitude = GnssCoordinateToDecimal(atof(parser[1]));
 
-		if (*(parser[1] + strlen(parser[1]) - 1) != 'N') {
-			*latitude = 0.0 - *latitude;
+		if (parser[1][strlen(parser[1]) - 1] != 'N') {
+			*latitude = - *latitude;
 		}
 	}
 
 	// longitude
 	if (longitude != NULL) {
-		*longitude = coordinateToDecimal(atof(parser[2]));
+		*longitude = GnssCoordinateToDecimal(atof(parser[2]));
 
-		if (*(parser[2] + strlen(parser[2]) - 1) != 'E') {
-			*longitude = 0.0 - *longitude;
+		if (parser[2][strlen(parser[2]) - 1] != 'E') {
+			*longitude = - *longitude;
 		}
 	}
 
@@ -1296,8 +1265,30 @@ bool WioLTE::getGNSSLocation(double* longitude, double* latitude, double* altitu
 		*altitude = atof(parser[4]);
 	}
 
-	// consume the OK response
-	_AtSerial.ReadResponse("^OK$", 500, NULL);
+	// utc time
+	if (tim != NULL) {
+		if (parser.Size() < 10) return RET_ERR(false, E_UNKNOWN);
+
+		const char* ymd = parser[9];	// date. ddmmyy
+		const char* hms = parser[0];	// time. hhmmss.s
+
+		if (strlen(ymd) != 6) return RET_ERR(false, E_UNKNOWN);
+		if (strlen(hms) < 6) return RET_ERR(false, E_UNKNOWN);
+
+		int yearOffset = Convert2DigitsToInt(&ymd[4]);
+		tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset - 1900;
+		tim->tm_mon = Convert2DigitsToInt(&ymd[2]) - 1;
+		tim->tm_mday = Convert2DigitsToInt(&ymd[0]);
+		tim->tm_hour = Convert2DigitsToInt(&hms[0]);
+		tim->tm_min = Convert2DigitsToInt(&hms[2]);
+		tim->tm_sec = Convert2DigitsToInt(&hms[4]);
+		tim->tm_wday = 0;
+		tim->tm_yday = 0;
+		tim->tm_isdst = 0;
+
+		// Update tm_wday and tm_yday
+		mktime(tim);
+	}
 
 	return RET_OK(true);
 }
