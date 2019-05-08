@@ -70,23 +70,6 @@ static int Convert2DigitsToInt(const char* digits)
 	return (digits[0] - '0') * 10 + (digits[1] - '0');
 }
 
-static int NumberOfDigits(int value)
-{
-	int digits = 0;
-
-	if (value < 0) {
-		digits++;
-		value *= -1;
-	}
-
-	do {
-		digits++;
-		value /= 10;
-	} while (value > 0);
-
-	return digits;
-}
-
 static bool SplitUrl(const char* url, const char** host, int* hostLength, const char** uri, int* uriLength)
 {
 	if (strncmp(url, "http://", 7) == 0) {
@@ -113,7 +96,7 @@ static bool SplitUrl(const char* url, const char** host, int* hostLength, const 
 static bool SmAddressFieldToString(const byte* addressField, char* str, int strSize)
 {
 	byte addressLength = addressField[0];
-	byte typeOfAddress = addressField[1];
+	//byte typeOfAddress = addressField[1];
 	const byte* addressValue = &addressField[2];
 
 	if (addressLength + 1 > strSize) return false;
@@ -484,7 +467,7 @@ bool WioLTE::TurnOff(long timeout)
 		_AtSerial.WriteCommand("AT+QPOWD");
 		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
 		if (response == "OK") break;
-		if (sw.ElapsedMilliseconds() >= timeout) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
 		delay(POLLING_INTERVAL);
 	}
 
@@ -726,7 +709,7 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 			message[i] = tpUd[offset] & 0x7f;
 		}
 		else {
-			message[i] = tpUd[offset] * 256 + tpUd[offset - 1] << shift >> 8 & 0x7f;
+			message[i] = (tpUd[offset] * 256 + tpUd[offset - 1]) << shift >> 8 & 0x7f;
 		}
 	}
 	message[*tpUdl] = '\0';
@@ -1001,7 +984,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize, long timeout)
 	sw.Restart();
 	int dataLength;
 	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
-		if (sw.ElapsedMilliseconds() >= timeout) return 0;
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return 0;
 		delay(POLLING_INTERVAL);
 	}
 	return dataLength;
@@ -1013,7 +996,7 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize, long timeout)
 	sw.Restart();
 	int dataLength;
 	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
-		if (sw.ElapsedMilliseconds() >= timeout) return 0;
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return 0;
 		delay(POLLING_INTERVAL);
 	}
 	return dataLength;
