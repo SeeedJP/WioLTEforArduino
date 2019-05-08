@@ -452,7 +452,24 @@ bool WioLTE::TurnOnOrReset()
 	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 
-	if (!_AtSerial.ReadResponse("^\\+CPIN: READY$", 10000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	sw.Restart();
+	bool cpinReady;
+	while (true) {
+		_AtSerial.WriteCommand("AT+CPIN?");
+		cpinReady = false;
+		while (true) {
+			if (!_AtSerial.ReadResponse("^(OK|\\+CPIN: READY|\\+CME ERROR: .*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+			if (response == "+CPIN: READY") {
+				cpinReady = true;
+				continue;
+			}
+			break;
+		}
+		if (response == "OK" && cpinReady) break;
+
+		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
+		delay(POLLING_INTERVAL);
+	}
 
 	return RET_OK(true);
 }
