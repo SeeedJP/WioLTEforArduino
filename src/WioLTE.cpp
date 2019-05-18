@@ -1204,7 +1204,19 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 
 bool WioLTE::EnableGNSS()
 {
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+
+	int errCounts = 0;
+
+	// Open GNSS funtion
+	while (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS?", "^\\+QGPS: 1$", 2000, NULL)) {
+		errCounts++;
+		if (errCounts > 5){
+			return RET_ERR(false, E_UNKNOWN);
+		}
+		_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 2000, NULL);
+		delay(1000);
+	}
 
 	return RET_OK(true);
 }
