@@ -1202,9 +1202,19 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	return RET_OK(true);
 }
 
-bool WioLTE::EnableGNSS()
+bool WioLTE::EnableGNSS(long timeout)
 {
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QGPS=1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	std::string response;
+
+	Stopwatch sw;
+	sw.Restart();
+	while (true) {
+		_AtSerial.WriteCommand("AT+QGPS=1");
+		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
+		if (response == "OK") break;
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		delay(POLLING_INTERVAL);
+	}
 
 	return RET_OK(true);
 }
