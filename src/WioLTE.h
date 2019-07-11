@@ -34,6 +34,12 @@
 #define WIO_A4		(WioLTE::A4)
 #define WIO_A5		(WioLTE::A5)
 
+#if defined ARDUINO_ARCH_STM32F4
+extern HardwareSerial& SerialModule;
+#elif defined ARDUINO_ARCH_STM32
+extern HardwareSerial SerialModule;
+#endif
+
 class WioLTE
 {
 public:

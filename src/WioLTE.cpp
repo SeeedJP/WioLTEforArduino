@@ -24,6 +24,16 @@
 
 #define LINEAR_SCALE(val, inMin, inMax, outMin, outMax)	(((val) - (inMin)) / ((inMax) - (inMin)) * ((outMax) - (outMin)) + (outMin))
 
+
+#if defined ARDUINO_ARCH_STM32F4
+HardwareSerial& SerialModule = Serial1;
+#elif defined ARDUINO_ARCH_STM32
+#define PINNAME_TO_PIN(port, pin) ((port - 'A') * 16 + pin)
+#define MODULE_UART_TX_PIN  PINNAME_TO_PIN('A', 2)	// out
+#define MODULE_UART_RX_PIN  PINNAME_TO_PIN('A', 3)	// in
+HardwareSerial SerialModule(MODULE_UART_RX_PIN, MODULE_UART_TX_PIN);
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
 
@@ -313,14 +323,10 @@ bool WioLTE::ReadResponseCallback(const char* response)
 }
 
 #if defined ARDUINO_ARCH_STM32F4
-WioLTE::WioLTE() : _SerialAPI(&Serial1), _AtSerial(&_SerialAPI, this), _Led(1, RGB_LED_PIN), _LastErrorCode(E_OK)
+WioLTE::WioLTE() : _SerialAPI(&SerialModule), _AtSerial(&_SerialAPI, this), _Led(1, RGB_LED_PIN), _LastErrorCode(E_OK)
 {
 }
 #elif defined ARDUINO_ARCH_STM32
-#define PINNAME_TO_PIN(port, pin) ((port - 'A') * 16 + pin)
-#define MODULE_UART_TX_PIN  PINNAME_TO_PIN('A', 2)	// out
-#define MODULE_UART_RX_PIN  PINNAME_TO_PIN('A', 3)	// in
-static HardwareSerial SerialModule(MODULE_UART_RX_PIN, MODULE_UART_TX_PIN);
 WioLTE::WioLTE() : _SerialAPI(&SerialModule), _AtSerial(&_SerialAPI, this), _Led(), _LastErrorCode(E_OK)
 {
 }
