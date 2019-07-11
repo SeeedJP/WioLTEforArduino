@@ -98,7 +98,7 @@ int WioLTEClient::read(uint8_t* buf, size_t size)
 	int actualSize = available();
 	if (actualSize <= 0) return 0;	// None is available.
 
-	int popSize = actualSize <= size ? actualSize : size;
+	int popSize = (unsigned)actualSize <= size ? actualSize : size;
 	for (int i = 0; i < popSize; i++) {
 		buf[i] = _ReceiveQueue.front();
 		_ReceiveQueue.pop();

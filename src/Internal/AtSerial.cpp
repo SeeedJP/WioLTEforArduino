@@ -21,7 +21,7 @@ AtSerial::AtSerial(SerialAPI* serial, WioLTE* wioLTE) : _Serial(serial), _WioLTE
 bool AtSerial::WaitForAvailable(Stopwatch* sw, unsigned long timeout) const
 {
 	while (!_Serial->Available()) {
-		if (timeout >= 0 && sw != NULL && sw->ElapsedMilliseconds() >= timeout) {
+		if (sw != NULL && sw->ElapsedMilliseconds() >= timeout) {
 			DEBUG_PRINTLN("### TIMEOUT ###");
 			return false;
 		}
