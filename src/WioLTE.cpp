@@ -1032,7 +1032,7 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize, long timeout)
 	WioLTEHttpHeader header;
 	header["Accept"] = "*/*";
 	header["User-Agent"] = HTTP_USER_AGENT;
-	header["Connection"] = "Keep-Alive";
+	header["Connection"] = "close";
 
 	return HttpGet(url, data, dataSize, header, timeout);
 }
@@ -1122,7 +1122,7 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, long
 	WioLTEHttpHeader header;
 	header["Accept"] = "*/*";
 	header["User-Agent"] = HTTP_USER_AGENT;
-	header["Connection"] = "Keep-Alive";
+	header["Connection"] = "close";
 	header["Content-Type"] = HTTP_CONTENT_TYPE;
 
 	return HttpPost(url, data, responseCode, header, timeout);
