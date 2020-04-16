@@ -519,7 +519,7 @@ int WioLTE::GetRevision(char* revision, int revisionSize)
 
 	_AtSerial.WriteCommand("AT+CGMR");
 	while (true) {
-		if (!_AtSerial.ReadResponse("^(OK|[0-9A-Z]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|[0-9A-Z_]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
 		if (response == "OK") break;
 		revisionStr = response;
 	}
