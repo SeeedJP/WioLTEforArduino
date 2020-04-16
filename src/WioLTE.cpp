@@ -512,6 +512,24 @@ bool WioLTE::Wakeup()
 	return RET_OK(true);
 }
 
+int WioLTE::GetRevision(char* revision, int revisionSize)
+{
+	std::string response;
+	std::string revisionStr;
+
+	_AtSerial.WriteCommand("AT+CGMR");
+	while (true) {
+		if (!_AtSerial.ReadResponse("^(OK|[0-9A-Z]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (response == "OK") break;
+		revisionStr = response;
+	}
+
+	if ((int)revisionStr.size() + 1 > revisionSize) return RET_ERR(-1, E_UNKNOWN);
+	strcpy(revision, revisionStr.c_str());
+
+	return RET_OK((int)strlen(revision));
+}
+
 int WioLTE::GetIMEI(char* imei, int imeiSize)
 {
 	std::string response;

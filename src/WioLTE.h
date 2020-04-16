@@ -164,6 +164,7 @@ public:
 	bool Sleep();
 	bool Wakeup();
 
+	int GetRevision(char* revision, int revisionSize);
 	int GetIMEI(char* imei, int imeiSize);
 	int GetIMSI(char* imsi, int imsiSize);
 	int GetICCID(char* iccid, int iccidSize);
