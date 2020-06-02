@@ -8,6 +8,7 @@
 #include "Internal/WioSK6812.h"
 #endif
 #include <time.h>
+#include <functional>
 #include "WioLTEHttpHeader.h"
 
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
@@ -119,6 +120,7 @@ private:
 	WioSK6812 _Led;
 #endif
 	ErrorCodeType _LastErrorCode;
+	std::function<void(int)>_Delay;
 
 	bool _PacketGprsNetworkRegistration;
 	bool _PacketEpsNetworkRegistration;
@@ -151,6 +153,7 @@ public:
 public:
 	WioLTE();
 	ErrorCodeType GetLastError() const;
+	void SetDelayFunction(std::function<void(int)> func);
 	void Init();
 	void PowerSupplyLTE(bool on);						// Keep compatibility
 	void PowerSupplyCellular(bool on);

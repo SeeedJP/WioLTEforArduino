@@ -125,6 +125,11 @@ static double GnssCoordinateToDecimal(double dddmm)
 	return deg + min / 60.0;
 }
 
+static void DelayArduino(int milliseconds)
+{
+	delay(milliseconds);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // WioLTE
 
@@ -166,9 +171,9 @@ bool WioLTE::IsRespond()
 bool WioLTE::Reset(long timeout)
 {
 	digitalWrite(RESET_MODULE_PIN, LOW);
-	delay(200);
+	_Delay(200);
 	digitalWrite(RESET_MODULE_PIN, HIGH);
-	delay(300);
+	_Delay(300);
 
 	Stopwatch sw;
 	sw.Restart();
@@ -189,9 +194,9 @@ bool WioLTE::Reset(long timeout)
 
 bool WioLTE::TurnOn(long timeout)
 {
-	delay(100);
+	_Delay(100);
 	digitalWrite(PWR_KEY_PIN, HIGH);
-	delay(200);
+	_Delay(200);
 	digitalWrite(PWR_KEY_PIN, LOW);
 
 	Stopwatch sw;
@@ -326,11 +331,21 @@ bool WioLTE::ReadResponseCallback(const char* response)
 }
 
 #if defined ARDUINO_ARCH_STM32F4
-WioLTE::WioLTE() : _SerialAPI(&SerialModule), _AtSerial(&_SerialAPI, this), _Led(1, RGB_LED_PIN), _LastErrorCode(E_OK)
+WioLTE::WioLTE() :
+	_SerialAPI(&SerialModule),
+	_AtSerial(&_SerialAPI, this), 
+	_Led(1, RGB_LED_PIN), 
+	_LastErrorCode(E_OK), 
+	_Delay{ DelayArduino }
 {
 }
 #elif defined ARDUINO_ARCH_STM32
-WioLTE::WioLTE() : _SerialAPI(&SerialModule), _AtSerial(&_SerialAPI, this), _Led(), _LastErrorCode(E_OK)
+WioLTE::WioLTE() : 
+	_SerialAPI(&SerialModule), 
+	_AtSerial(&_SerialAPI, this), 
+	_Led(), 
+	_LastErrorCode(E_OK), 
+	_Delay{ DelayArduino }
 {
 }
 #endif
@@ -338,6 +353,11 @@ WioLTE::WioLTE() : _SerialAPI(&SerialModule), _AtSerial(&_SerialAPI, this), _Led
 WioLTE::ErrorCodeType WioLTE::GetLastError() const
 {
 	return _LastErrorCode;
+}
+
+void WioLTE::SetDelayFunction(std::function<void(int)> func)
+{
+	_Delay = func;
 }
 
 void WioLTE::Init()
@@ -477,7 +497,7 @@ bool WioLTE::TurnOnOrReset(long timeout)
 		if (response == "OK" && cpinReady) break;
 
 		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 
 	return RET_OK(true);
@@ -494,7 +514,7 @@ bool WioLTE::TurnOff(long timeout)
 		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
 		if (response == "OK") break;
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 
 	if (!_AtSerial.ReadResponse("^POWERED DOWN$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
@@ -797,7 +817,7 @@ bool WioLTE::WaitForCSRegistration(long timeout)
 		if (status == 1 || status == 5) break;
 
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 
 	return RET_OK(true);
@@ -834,7 +854,7 @@ bool WioLTE::WaitForPSRegistration(long timeout)
 		if (status == 1 || status == 5) break;
 
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 
 	return RET_OK(true);
@@ -874,7 +894,7 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 		if (response == "OK") break;
 		if (!_AtSerial.WriteCommandAndReadResponse("AT+QIGETERROR", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
 		if (sw.ElapsedMilliseconds() >= 150000) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 
 	// for debug.
@@ -1029,7 +1049,7 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize, long timeout)
 	int dataLength;
 	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return 0;
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 	return dataLength;
 }
@@ -1041,7 +1061,7 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize, long timeout)
 	int dataLength;
 	while ((dataLength = SocketReceive(connectId, data, dataSize)) == 0) {
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return 0;
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 	return dataLength;
 }
@@ -1240,7 +1260,7 @@ bool WioLTE::EnableGNSS(long timeout)
 		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
 		if (response == "OK") break;
 		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
-		delay(POLLING_INTERVAL);
+		_Delay(POLLING_INTERVAL);
 	}
 
 	return RET_OK(true);
