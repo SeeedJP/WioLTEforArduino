@@ -11,11 +11,14 @@ class AtSerial
 private:
 	SerialAPI* _Serial;
 	WioLTE* _WioLTE;
+	std::function<void()> _DoWorkInWaitForAvailable;
 
 	bool ReadResponseInternal(const char* pattern, unsigned long timeout, std::string* response, int responseMaxLength);
 
 public:
 	AtSerial(SerialAPI* serial, WioLTE* wioLTE);
+
+	void SetDoWorkInWaitForAvailableFunction(std::function<void()> func);
 
 	bool WaitForAvailable(Stopwatch* sw, unsigned long timeout) const;
 

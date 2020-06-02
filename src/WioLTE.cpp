@@ -360,6 +360,11 @@ void WioLTE::SetDelayFunction(std::function<void(int)> func)
 	_Delay = func;
 }
 
+void WioLTE::SetDoWorkInWaitForAvailableFunction(std::function<void()> func)
+{
+	_AtSerial.SetDoWorkInWaitForAvailableFunction(func);
+}
+
 void WioLTE::Init()
 {
 	// Power supply

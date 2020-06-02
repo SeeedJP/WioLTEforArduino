@@ -154,6 +154,7 @@ public:
 	WioLTE();
 	ErrorCodeType GetLastError() const;
 	void SetDelayFunction(std::function<void(int)> func);
+	void SetDoWorkInWaitForAvailableFunction(std::function<void()> func);
 	void Init();
 	void PowerSupplyLTE(bool on);						// Keep compatibility
 	void PowerSupplyCellular(bool on);
