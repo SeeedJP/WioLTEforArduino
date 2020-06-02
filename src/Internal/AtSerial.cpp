@@ -14,8 +14,16 @@
 #define CHAR_CR (0x0d)
 #define CHAR_LF (0x0a)
 
-AtSerial::AtSerial(SerialAPI* serial, WioLTE* wioLTE) : _Serial(serial), _WioLTE(wioLTE)
+AtSerial::AtSerial(SerialAPI* serial, WioLTE* wioLTE) :
+	_Serial(serial),
+	_WioLTE(wioLTE),
+	_DoWorkInWaitForAvailable{ nullptr }
 {
+}
+
+void AtSerial::SetDoWorkInWaitForAvailableFunction(std::function<void()> func)
+{
+	_DoWorkInWaitForAvailable = func;
 }
 
 bool AtSerial::WaitForAvailable(Stopwatch* sw, unsigned long timeout) const
@@ -25,6 +33,7 @@ bool AtSerial::WaitForAvailable(Stopwatch* sw, unsigned long timeout) const
 			DEBUG_PRINTLN("### TIMEOUT ###");
 			return false;
 		}
+		if (_DoWorkInWaitForAvailable) _DoWorkInWaitForAvailable();
 	}
 
 	return true;

@@ -8,6 +8,7 @@
 #include "Internal/WioSK6812.h"
 #endif
 #include <time.h>
+#include <functional>
 #include "WioLTEHttpHeader.h"
 
 #define WIOLTE_TCP	(WioLTE::SOCKET_TCP)
@@ -119,6 +120,7 @@ private:
 	WioSK6812 _Led;
 #endif
 	ErrorCodeType _LastErrorCode;
+	std::function<void(int)>_Delay;
 
 	bool _PacketGprsNetworkRegistration;
 	bool _PacketEpsNetworkRegistration;
@@ -138,8 +140,8 @@ private:
 	int ReturnError(int lineNumber, int value, ErrorCodeType errorCode);
 
 	bool IsRespond();
-	bool Reset();
-	bool TurnOn();
+	bool Reset(long timeout);
+	bool TurnOn(long timeout);
 
 	int GetFirstIndexOfReceivedSMS();
 
@@ -151,6 +153,8 @@ public:
 public:
 	WioLTE();
 	ErrorCodeType GetLastError() const;
+	void SetDelayFunction(std::function<void(int)> func);
+	void SetDoWorkInWaitForAvailableFunction(std::function<void()> func);
 	void Init();
 	void PowerSupplyLTE(bool on);						// Keep compatibility
 	void PowerSupplyCellular(bool on);
@@ -159,7 +163,7 @@ public:
 	void PowerSupplyGrove(bool on);
 	void PowerSupplySD(bool on);
 	void LedSetRGB(byte red, byte green, byte blue);
-	bool TurnOnOrReset();
+	bool TurnOnOrReset(long timeout = 12000);
 	bool TurnOff(long timeout = 60000);
 	bool Sleep();
 	bool Wakeup();
