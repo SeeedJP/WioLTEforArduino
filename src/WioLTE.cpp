@@ -163,7 +163,7 @@ bool WioLTE::IsRespond()
 	return true;
 }
 
-bool WioLTE::Reset()
+bool WioLTE::Reset(long timeout)
 {
 	digitalWrite(RESET_MODULE_PIN, LOW);
 	delay(200);
@@ -174,14 +174,20 @@ bool WioLTE::Reset()
 	sw.Restart();
 	while (!_AtSerial.ReadResponse("^RDY$", 100, NULL)) {
 		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 12000) return false;
+		if (sw.ElapsedMilliseconds() >= timeout) return false;
 	}
 	DEBUG_PRINTLN("");
+
+#ifdef WIO_DEBUG
+	char dbg[100];
+	sprintf(dbg, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
+	DEBUG_PRINTLN(dbg);
+#endif // WIO_DEBUG
 
 	return true;
 }
 
-bool WioLTE::TurnOn()
+bool WioLTE::TurnOn(long timeout)
 {
 	delay(100);
 	digitalWrite(PWR_KEY_PIN, HIGH);
@@ -192,9 +198,15 @@ bool WioLTE::TurnOn()
 	sw.Restart();
 	while (!_AtSerial.ReadResponse("^RDY$", 100, NULL)) {
 		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 12000) return false;
+		if (sw.ElapsedMilliseconds() >= timeout) return false;
 	}
 	DEBUG_PRINTLN("");
+
+#ifdef WIO_DEBUG
+	char dbg[100];
+	sprintf(dbg, "Elapsed time is %lu[msec.].", sw.ElapsedMilliseconds());
+	DEBUG_PRINTLN(dbg);
+#endif // WIO_DEBUG
 
 	return true;
 }
@@ -418,17 +430,17 @@ void WioLTE::LedSetRGB(byte red, byte green, byte blue)
 	_LastErrorCode = E_OK;
 }
 
-bool WioLTE::TurnOnOrReset()
+bool WioLTE::TurnOnOrReset(long timeout)
 {
 	std::string response;
 
 	if (IsRespond()) {
 		DEBUG_PRINTLN("Reset()");
-		if (!Reset()) return RET_ERR(false, E_UNKNOWN);
+		if (!Reset(timeout)) return RET_ERR(false, E_UNKNOWN);
 	}
 	else {
 		DEBUG_PRINTLN("TurnOn()");
-		if (!TurnOn()) return RET_ERR(false, E_UNKNOWN);
+		if (!TurnOn(timeout)) return RET_ERR(false, E_UNKNOWN);
 	}
 
 	Stopwatch sw;

@@ -138,8 +138,8 @@ private:
 	int ReturnError(int lineNumber, int value, ErrorCodeType errorCode);
 
 	bool IsRespond();
-	bool Reset();
-	bool TurnOn();
+	bool Reset(long timeout);
+	bool TurnOn(long timeout);
 
 	int GetFirstIndexOfReceivedSMS();
 
@@ -159,7 +159,7 @@ public:
 	void PowerSupplyGrove(bool on);
 	void PowerSupplySD(bool on);
 	void LedSetRGB(byte red, byte green, byte blue);
-	bool TurnOnOrReset();
+	bool TurnOnOrReset(long timeout = 12000);
 	bool TurnOff(long timeout = 60000);
 	bool Sleep();
 	bool Wakeup();
