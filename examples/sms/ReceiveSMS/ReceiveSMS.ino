@@ -38,7 +38,7 @@ void setup() {
 void loop() {
   SerialUSB.print(".");
   while (true) {
-    char str[100];
+    char str[200];
     int strLen = Wio.ReceiveSMS(str, sizeof (str));
     if (strLen < 0) {
       SerialUSB.println("### ERROR! ###");
