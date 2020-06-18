@@ -746,12 +746,13 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 	if (!ConvertHexToBytes(hex, data, dataSize)) return RET_ERR(-1, E_UNKNOWN);
 	byte* dataEnd = &data[dataSize];
 
-	// http://www.etsi.org/deliver/etsi_gts/03/0340/05.03.00_60/gsmts_0340v050300p.pdf
-	// http://www.etsi.org/deliver/etsi_gts/03/0338/05.00.00_60/gsmts_0338v050000p.pdf
+	// 3GPP TS 23.040 https://www.etsi.org/deliver/etsi_ts/123000_123099/123040/09.03.00_60/ts_123040v090300p.pdf
+	// 3GPP TS 23.038 https://www.etsi.org/deliver/etsi_ts/123000_123099/123038/10.00.00_60/ts_123038v100000p.pdf
 	byte* smscInfoSize = data;
 	byte* tpMti = smscInfoSize + 1 + *smscInfoSize;
 	if (tpMti >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
-	if ((*tpMti & 0xc0) != 0) return RET_ERR(-1, E_UNKNOWN);	// SMS-DELIVER
+	if ((*tpMti & 0x03) != 0x00) return RET_ERR(-1, E_UNKNOWN);	// SMS-DELIVER
+	bool tpUdhi = *tpMti & 0b01000000 ? true : false;
 	byte* tpOaSize = tpMti + 1;
 	if (tpOaSize >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
 	byte* tpPid = tpOaSize + 2 + *tpOaSize / 2 + *tpOaSize % 2;
@@ -760,9 +761,7 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 	if (tpDcs >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
 	byte* tpScts = tpDcs + 1;
 	if (tpScts >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
-	byte* tpUdl = tpScts + 7;
-	if (tpUdl >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
-	byte* tpUd = tpUdl + 1;
+	byte* tpUd = tpScts + 7;
 	if (tpUd >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
 
 	if (dialNumber != NULL && dialNumberSize >= 1)
@@ -770,22 +769,36 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 		if (!SmAddressFieldToString(tpOaSize, dialNumber, dialNumberSize)) return RET_ERR(-1, E_UNKNOWN);
 	}
 
-	if (messageSize < *tpUdl + 1) return RET_ERR(-1, E_UNKNOWN);
-	for (int i = 0; i < *tpUdl; i++) {
+	int smSize;
+	byte* sm;
+	if (!tpUdhi)
+	{
+		smSize = tpUd[0];
+		sm = tpUd + 1;
+	}
+	else
+	{
+		if (&tpUd[1] >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+		smSize = tpUd[0] - (1 + tpUd[1]);
+		sm = tpUd + 2 + tpUd[1];
+	}
+
+	if (messageSize < smSize + 1) return RET_ERR(-1, E_UNKNOWN);
+	for (int i = 0; i < smSize; i++) {
 		int offset = i - i / 8;
 		int shift = i % 8;
 		if (shift == 0) {
-			message[i] = tpUd[offset] & 0x7f;
+			message[i] = sm[offset] & 0x7f;
 		}
 		else {
-			message[i] = (tpUd[offset] * 256 + tpUd[offset - 1]) << shift >> 8 & 0x7f;
+			message[i] = (sm[offset] * 256 + sm[offset - 1]) << shift >> 8 & 0x7f;
 		}
 	}
-	message[*tpUdl] = '\0';
+	message[smSize] = '\0';
 
 	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
 
-	return RET_OK(*tpUdl);
+	return RET_OK(smSize);
 }
 
 bool WioLTE::DeleteReceivedSMS()
