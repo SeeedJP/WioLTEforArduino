@@ -3,6 +3,7 @@
 #include "SerialAPI.h"
 #include "Stopwatch.h"
 #include <string>
+#include <functional>
 
 class WioLTE;
 
