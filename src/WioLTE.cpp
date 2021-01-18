@@ -933,9 +933,11 @@ bool WioLTE::Deactivate()
 bool WioLTE::SyncTime(const char* host)
 {
 	StringBuilder str;
+	std::string response;
 	if (!str.WriteFormat("AT+QNTP=1,\"%s\"", host)) return RET_ERR(false, E_UNKNOWN);
 	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^\\+QNTP: (.*)$", 125000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QNTP: (.*)$", 125000, &response)) return RET_ERR(false, E_UNKNOWN);
+	if (strncmp(response.c_str(), "0,", 2) != 0) return RET_ERR(-1, E_UNKNOWN); // check whether the command finished successfully
 
 	return RET_OK(true);
 }
