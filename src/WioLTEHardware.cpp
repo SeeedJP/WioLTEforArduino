@@ -16,7 +16,7 @@ TwoWire& WireI2C = Wire;
 
 HardwareSerial SerialModule(MODULE_UART_RX_PIN, MODULE_UART_TX_PIN);
 
-HardwareSerial& SerialUART = Serial;
+HardwareSerial& SerialUART = Serial1;
 TwoWire& WireI2C = Wire;
 
 #endif
