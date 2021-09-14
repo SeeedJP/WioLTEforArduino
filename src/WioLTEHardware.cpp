@@ -12,7 +12,9 @@ TwoWire& WireI2C = Wire;
 
 HardwareSerial SerialModule(WioLTEHardwarePin::MODULE_UART_RX_PIN, WioLTEHardwarePin::MODULE_UART_TX_PIN);
 
+#if defined Serial
 HardwareSerial& SerialUART = Serial;
+#endif // Serial
 TwoWire& WireI2C = Wire;
 
 #endif

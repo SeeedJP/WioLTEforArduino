@@ -21,7 +21,9 @@ extern TwoWire& WireI2C;
 
 extern HardwareSerial SerialModule;
 
+#if defined Serial
 extern HardwareSerial& SerialUART;
+#endif // Serial
 extern TwoWire& WireI2C;
 
 #endif
