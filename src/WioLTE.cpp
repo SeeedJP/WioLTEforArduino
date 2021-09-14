@@ -170,9 +170,9 @@ bool WioLTE::IsRespond()
 
 bool WioLTE::Reset(long timeout)
 {
-	digitalWrite(RESET_MODULE_PIN, LOW);
+	digitalWrite(WioLTEHardwarePin::RESET_MODULE_PIN, LOW);
 	_Delay(200);
-	digitalWrite(RESET_MODULE_PIN, HIGH);
+	digitalWrite(WioLTEHardwarePin::RESET_MODULE_PIN, HIGH);
 	_Delay(300);
 
 	Stopwatch sw;
@@ -195,9 +195,9 @@ bool WioLTE::Reset(long timeout)
 bool WioLTE::TurnOn(long timeout)
 {
 	_Delay(100);
-	digitalWrite(PWR_KEY_PIN, HIGH);
+	digitalWrite(WioLTEHardwarePin::PWR_KEY_PIN, HIGH);
 	_Delay(200);
-	digitalWrite(PWR_KEY_PIN, LOW);
+	digitalWrite(WioLTEHardwarePin::PWR_KEY_PIN, LOW);
 
 	Stopwatch sw;
 	sw.Restart();
@@ -334,7 +334,7 @@ bool WioLTE::ReadResponseCallback(const char* response)
 WioLTE::WioLTE() :
 	_SerialAPI(&SerialModule),
 	_AtSerial(&_SerialAPI, this), 
-	_Led(1, RGB_LED_PIN), 
+	_Led(1, WioLTEHardwarePin::RGB_LED_PIN),
 	_LastErrorCode(E_OK), 
 	_Delay{ DelayArduino }
 {
@@ -368,34 +368,32 @@ void WioLTE::SetDoWorkInWaitForAvailableFunction(std::function<void()> func)
 void WioLTE::Init()
 {
 	// Power supply
-	PinModeAndDefault(MODULE_PWR_PIN, OUTPUT, LOW);
-	PinModeAndDefault(ANT_PWR_PIN, OUTPUT, LOW);
-	PinModeAndDefault(ENABLE_VCCB_PIN, OUTPUT, LOW);
-#if defined WIOLTE_SCHEMATIC_B
-	PinModeAndDefault(RGB_LED_PWR_PIN, OUTPUT, HIGH);
-	PinModeAndDefault(SD_POWR_PIN, OUTPUT, LOW);
-#endif // WIOLTE_SCHEMATIC_B
+	if (WioLTEHardwarePin::MODULE_PWR_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::MODULE_PWR_PIN, OUTPUT, LOW);
+	if (WioLTEHardwarePin::ANT_PWR_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::ANT_PWR_PIN, OUTPUT, LOW);
+	if (WioLTEHardwarePin::ENABLE_VCCB_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::ENABLE_VCCB_PIN, OUTPUT, LOW);
+	if (WioLTEHardwarePin::RGB_LED_PWR_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::RGB_LED_PWR_PIN, OUTPUT, HIGH);
+	if (WioLTEHardwarePin::SD_POWR_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::SD_POWR_PIN, OUTPUT, LOW);
 
 	// Turn on/off Pins
-	PinModeAndDefault(PWR_KEY_PIN, OUTPUT, LOW);
-	PinModeAndDefault(RESET_MODULE_PIN, OUTPUT, HIGH);
+	PinModeAndDefault(WioLTEHardwarePin::PWR_KEY_PIN, OUTPUT, LOW);
+	PinModeAndDefault(WioLTEHardwarePin::RESET_MODULE_PIN, OUTPUT, HIGH);
 
 	// Status Indication Pins
-	PinModeAndDefault(STATUS_PIN, INPUT);
+	if (WioLTEHardwarePin::STATUS_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::STATUS_PIN, INPUT);
 
 	// UART Interface
-	PinModeAndDefault(DTR_PIN, OUTPUT, LOW);
+	if (WioLTEHardwarePin::DTR_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::DTR_PIN, OUTPUT, LOW);
 
 	// GPIO Pins
-	PinModeAndDefault(WAKEUP_IN_PIN, OUTPUT, LOW);
-	PinModeAndDefault(W_DISABLE_PIN, OUTPUT, HIGH);
-	//PinModeAndDefault(AP_READY_PIN, OUTPUT);  // NOT use
+	if (WioLTEHardwarePin::WAKEUP_IN_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::WAKEUP_IN_PIN, OUTPUT, LOW);
+	if (WioLTEHardwarePin::W_DISABLE_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::W_DISABLE_PIN, OUTPUT, HIGH);
+	//if (WioLTEHardwarePin::AP_READY_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::AP_READY_PIN, OUTPUT);  // NOT use
   
 	_SerialAPI.Begin(115200);
 #if defined ARDUINO_ARCH_STM32F4
 	_Led.begin();
 #elif defined ARDUINO_ARCH_STM32
-	PinModeAndDefault(RGB_LED_PIN, OUTPUT, HIGH);
+	if (WioLTEHardwarePin::RGB_LED_PIN >= 0) PinModeAndDefault(WioLTEHardwarePin::RGB_LED_PIN, OUTPUT, HIGH);
 #endif
 	_LastErrorCode = E_OK;
 
@@ -405,40 +403,41 @@ void WioLTE::Init()
 
 void WioLTE::PowerSupplyLTE(bool on)
 {
-	digitalWrite(MODULE_PWR_PIN, on ? HIGH : LOW);
-	_LastErrorCode = E_OK;
+	PowerSupplyCellular(on);
 }
 
 void WioLTE::PowerSupplyCellular(bool on)
 {
-	PowerSupplyLTE(on);
+	if (WioLTEHardwarePin::MODULE_PWR_PIN >= 0) digitalWrite(WioLTEHardwarePin::MODULE_PWR_PIN, on ? HIGH : LOW);
+
+	_LastErrorCode = E_OK;
 }
 
 void WioLTE::PowerSupplyGNSS(bool on)
 {
-	digitalWrite(ANT_PWR_PIN, on ? HIGH : LOW);
+	if (WioLTEHardwarePin::ANT_PWR_PIN >= 0) digitalWrite(WioLTEHardwarePin::ANT_PWR_PIN, on ? HIGH : LOW);
+
 	_LastErrorCode = E_OK;
 }
 
 void WioLTE::PowerSupplyLed(bool on)
 {
-#if defined WIOLTE_SCHEMATIC_B
-	digitalWrite(RGB_LED_PWR_PIN, on ? HIGH : LOW);
-#endif // WIOLTE_SCHEMATIC_B
+	if (WioLTEHardwarePin::RGB_LED_PWR_PIN >= 0) digitalWrite(WioLTEHardwarePin::RGB_LED_PWR_PIN, on ? HIGH : LOW);
+
 	_LastErrorCode = E_OK;
 }
 
 void WioLTE::PowerSupplyGrove(bool on)
 {
-	digitalWrite(ENABLE_VCCB_PIN, on ? HIGH : LOW);
+	if (WioLTEHardwarePin::ENABLE_VCCB_PIN >= 0) digitalWrite(WioLTEHardwarePin::ENABLE_VCCB_PIN, on ? HIGH : LOW);
+
 	_LastErrorCode = E_OK;
 }
 
 void WioLTE::PowerSupplySD(bool on)
 {
-#if defined WIOLTE_SCHEMATIC_B
-	digitalWrite(SD_POWR_PIN, on ? HIGH : LOW);
-#endif // WIOLTE_SCHEMATIC_B
+	if (WioLTEHardwarePin::SD_POWR_PIN >= 0) digitalWrite(WioLTEHardwarePin::SD_POWR_PIN, on ? HIGH : LOW);
+
 	_LastErrorCode = E_OK;
 }
 
@@ -448,8 +447,11 @@ void WioLTE::LedSetRGB(byte red, byte green, byte blue)
 	_Led.WS2812SetRGB(0, red, green, blue);
 	_Led.WS2812Send();
 #elif defined ARDUINO_ARCH_STM32
-	_Led.Reset();
-	_Led.SetSingleLED(red, green, blue);
+	if (WioLTEHardwarePin::RGB_LED_PIN >= 0)
+	{
+		_Led.Reset();
+		_Led.SetSingleLED(red, green, blue);
+	}
 #endif
 
 	_LastErrorCode = E_OK;
@@ -529,14 +531,14 @@ bool WioLTE::TurnOff(long timeout)
 
 bool WioLTE::Sleep()
 {
-	digitalWrite(DTR_PIN, HIGH);
+	if (WioLTEHardwarePin::DTR_PIN >= 0) digitalWrite(WioLTEHardwarePin::DTR_PIN, HIGH);
 
 	return RET_OK(true);
 }
 
 bool WioLTE::Wakeup()
 {
-	digitalWrite(DTR_PIN, LOW);
+	if (WioLTEHardwarePin::DTR_PIN >= 0) digitalWrite(WioLTEHardwarePin::DTR_PIN, LOW);
 
 	Stopwatch sw;
 	sw.Restart();

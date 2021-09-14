@@ -50,50 +50,6 @@ public:
 		SOCKET_UDP,
 	};
 
-private:
-#if defined WIOLTE_SCHEMATIC_A
-	static const int MODULE_PWR_PIN = 18;		// PB2
-	static const int ANT_PWR_PIN = 28;			// PB12
-	static const int ENABLE_VCCB_PIN = 26;		// PB10    
-
-	static const int PWR_KEY_PIN = 36;			// PC4 
-	static const int RESET_MODULE_PIN = 35;		// PC3
-
-	static const int STATUS_PIN = 31;			// PB15
-
-	static const int DTR_PIN = 1;				// PA1
-
-	static const int WAKEUP_IN_PIN = 32;		// PC0
-	static const int W_DISABLE_PIN = 34;		// PC2
-	static const int AP_READY_PIN = 33;			// PC1
-
-	static const int RGB_LED_PIN = 17;			// PB1
-
-#elif defined WIOLTE_SCHEMATIC_B
-	static const int MODULE_PWR_PIN = 21;		// PB5
-	static const int ANT_PWR_PIN = 28;			// PB12
-	static const int ENABLE_VCCB_PIN = 26;		// PB10
-	static const int RGB_LED_PWR_PIN = 8;		// PA8
-
-	static const int PWR_KEY_PIN = 36;			// PC4 
-	static const int RESET_MODULE_PIN = 35;		// PC3
-
-	static const int STATUS_PIN = 31;			// PB15
-
-	static const int DTR_PIN = 1;				// PA1
-
-	static const int WAKEUP_IN_PIN = 32;		// PC0
-	static const int W_DISABLE_PIN = 34;		// PC2
-	static const int AP_READY_PIN = 33;			// PC1
-
-	static const int RGB_LED_PIN = 17;			// PB1
-	static const int SD_POWR_PIN = 15;			// PA15
-
-#else
-#error Unkown WioLTE type
-
-#endif
-
 public:
 	// D38 connector
 	static const int D38 = 38;
