@@ -463,30 +463,30 @@ bool WioLTE::TurnOnOrReset(long timeout)
 
 	if (IsRespond()) {
 		DEBUG_PRINTLN("Reset()");
-		if (!Reset(timeout)) return RET_ERR(false, E_UNKNOWN);
+		if (!Reset(timeout)) return RET_ERR(false, E_UNABLE_TO_RECEIVE_RDY);
 	}
 	else {
 		DEBUG_PRINTLN("TurnOn()");
-		if (!TurnOn(timeout)) return RET_ERR(false, E_UNKNOWN);
+		if (!TurnOn(timeout)) return RET_ERR(false, E_UNABLE_TO_RECEIVE_RDY);
 	}
 
 	Stopwatch sw;
 	sw.Restart();
 	while (!_AtSerial.WriteCommandAndReadResponse("AT", "^OK$", 500, NULL)) {
 		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_NO_AT_RESPONSE);
 	}
 	DEBUG_PRINTLN("");
 
-	if (!_AtSerial.WriteCommandAndReadResponse("ATE0", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QSCLK=1", "^(OK|ERROR)$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("ATE0", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QURCCFG=\"urcport\",\"uart1\"", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QSCLK=1", "^(OK|ERROR)$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	// TODO ReadResponseCallback
-	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG=2", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG=2", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG=2", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG=2", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CGREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	//if (!_AtSerial.WriteCommandAndReadResponse("AT+CEREG?", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	sw.Restart();
 	bool cpinReady;
@@ -494,7 +494,7 @@ bool WioLTE::TurnOnOrReset(long timeout)
 		_AtSerial.WriteCommand("AT+CPIN?");
 		cpinReady = false;
 		while (true) {
-			if (!_AtSerial.ReadResponse("^(OK|\\+CPIN: READY|\\+CME ERROR: .*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+			if (!_AtSerial.ReadResponse("^(OK|\\+CPIN: READY|\\+CME ERROR: .*)$", 500, &response)) return RET_ERR(false, E_PIN);
 			if (response == "+CPIN: READY") {
 				cpinReady = true;
 				continue;
@@ -503,7 +503,7 @@ bool WioLTE::TurnOnOrReset(long timeout)
 		}
 		if (response == "OK" && cpinReady) break;
 
-		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= 10000) return RET_ERR(false, E_PIN);
 		_Delay(POLLING_INTERVAL);
 	}
 
@@ -518,13 +518,13 @@ bool WioLTE::TurnOff(long timeout)
 	sw.Restart();
 	while (true) {
 		_AtSerial.WriteCommand("AT+QPOWD");
-		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
 		if (response == "OK") break;
-		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_TIMEOUT);
 		_Delay(POLLING_INTERVAL);
 	}
 
-	if (!_AtSerial.ReadResponse("^POWERED DOWN$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^POWERED DOWN$", 60000, NULL)) return RET_ERR(false, E_UNABLE_TO_RECEIVE_POWERED_DOWN);
 
 	return RET_OK(true);
 }
@@ -544,7 +544,7 @@ bool WioLTE::Wakeup()
 	sw.Restart();
 	while (!_AtSerial.WriteCommandAndReadResponse("AT", "^OK$", 500, NULL)) {
 		DEBUG_PRINT(".");
-		if (sw.ElapsedMilliseconds() >= 2000) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= 2000) return RET_ERR(false, E_NO_AT_RESPONSE);
 	}
 	DEBUG_PRINTLN("");
 
@@ -558,12 +558,12 @@ int WioLTE::GetRevision(char* revision, int revisionSize)
 
 	_AtSerial.WriteCommand("AT+CGMR");
 	while (true) {
-		if (!_AtSerial.ReadResponse("^(OK|[0-9A-Z_]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|[0-9A-Z_]+)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
 		if (response == "OK") break;
 		revisionStr = response;
 	}
 
-	if ((int)revisionStr.size() + 1 > revisionSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)revisionStr.size() + 1 > revisionSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
 	strcpy(revision, revisionStr.c_str());
 
 	return RET_OK((int)strlen(revision));
@@ -576,12 +576,12 @@ int WioLTE::GetIMEI(char* imei, int imeiSize)
 
 	_AtSerial.WriteCommand("AT+GSN");
 	while (true) {
-		if (!_AtSerial.ReadResponse("^(OK|[0-9]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|[0-9]+)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
 		if (response == "OK") break;
 		imeiStr = response;
 	}
 
-	if ((int)imeiStr.size() + 1 > imeiSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)imeiStr.size() + 1 > imeiSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
 	strcpy(imei, imeiStr.c_str());
 
 	return RET_OK((int)strlen(imei));
@@ -594,12 +594,12 @@ int WioLTE::GetIMSI(char* imsi, int imsiSize)
 
 	_AtSerial.WriteCommand("AT+CIMI");
 	while (true) {
-		if (!_AtSerial.ReadResponse("^(OK|[0-9]+)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|[0-9]+)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
 		if (response == "OK") break;
 		imsiStr = response;
 	}
 
-	if ((int)imsiStr.size() + 1 > imsiSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)imsiStr.size() + 1 > imsiSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
 	strcpy(imsi, imsiStr.c_str());
 
 	return RET_OK((int)strlen(imsi));
@@ -610,11 +610,11 @@ int WioLTE::GetICCID(char* iccid, int iccidSize)
 	std::string response;
 
 	_AtSerial.WriteCommand("AT+QCCID");
-	if (!_AtSerial.ReadResponse("^\\+QCCID: (.*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QCCID: (.*)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 	response.erase(response.size() - 1, 1);
 
-	if ((int)response.size() + 1 > iccidSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)response.size() + 1 > iccidSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
 	strcpy(iccid, response.c_str());
 
 	return RET_OK((int)strlen(iccid));
@@ -628,17 +628,17 @@ int WioLTE::GetPhoneNumber(char* number, int numberSize)
 
 	_AtSerial.WriteCommand("AT+CNUM");
 	while (true) {
-		if (!_AtSerial.ReadResponse("^(OK|\\+CNUM: .*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|\\+CNUM: .*)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
 		if (response == "OK") break;
 
 		if (numberStr.size() >= 1) continue;
 
 		parser.Parse(response.c_str());
-		if (parser.Size() < 2) return RET_ERR(-1, E_UNKNOWN);
+		if (parser.Size() < 2) return RET_ERR(-1, E_INVALID_RESPONSE);
 		numberStr = parser[1];
 	}
 
-	if ((int)numberStr.size() + 1 > numberSize) return RET_ERR(-1, E_UNKNOWN);
+	if ((int)numberStr.size() + 1 > numberSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
 	strcpy(number, numberStr.c_str());
 
 	return RET_OK((int)strlen(number));
@@ -650,13 +650,13 @@ int WioLTE::GetReceivedSignalStrength()
 	ArgumentParser parser;
 
 	_AtSerial.WriteCommand("AT+CSQ");
-	if (!_AtSerial.ReadResponse("^\\+CSQ: (.*)$", 500, &response)) return RET_ERR(INT_MIN, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+CSQ: (.*)$", 500, &response)) return RET_ERR(INT_MIN, E_TIMEOUT);
 
 	parser.Parse(response.c_str());
-	if (parser.Size() != 2) return RET_ERR(INT_MIN, E_UNKNOWN);
+	if (parser.Size() != 2) return RET_ERR(INT_MIN, E_INVALID_RESPONSE);
 	int rssi = atoi(parser[0]);
 
-	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(INT_MIN, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(INT_MIN, E_TIMEOUT);
 
 	if (rssi == 0) return RET_OK(-113);
 	else if (rssi == 1) return RET_OK(-111);
@@ -677,19 +677,19 @@ bool WioLTE::GetTime(struct tm* tim)
 	std::string response;
 
 	_AtSerial.WriteCommand("AT+CCLK?");
-	if (!_AtSerial.ReadResponse("^\\+CCLK: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+CCLK: (.*)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
-	if (strlen(response.c_str()) != 22) return RET_ERR(false, E_UNKNOWN);
+	if (strlen(response.c_str()) != 22) return RET_ERR(false, E_INVALID_RESPONSE);
 	const char* parameter = response.c_str();
 
-	if (parameter[0] != '"') return RET_ERR(false, E_UNKNOWN);
-	if (parameter[3] != '/') return RET_ERR(false, E_UNKNOWN);
-	if (parameter[6] != '/') return RET_ERR(false, E_UNKNOWN);
-	if (parameter[9] != ',') return RET_ERR(false, E_UNKNOWN);
-	if (parameter[12] != ':') return RET_ERR(false, E_UNKNOWN);
-	if (parameter[15] != ':') return RET_ERR(false, E_UNKNOWN);
-	if (parameter[21] != '"') return RET_ERR(false, E_UNKNOWN);
+	if (parameter[0] != '"') return RET_ERR(false, E_INVALID_RESPONSE);
+	if (parameter[3] != '/') return RET_ERR(false, E_INVALID_RESPONSE);
+	if (parameter[6] != '/') return RET_ERR(false, E_INVALID_RESPONSE);
+	if (parameter[9] != ',') return RET_ERR(false, E_INVALID_RESPONSE);
+	if (parameter[12] != ':') return RET_ERR(false, E_INVALID_RESPONSE);
+	if (parameter[15] != ':') return RET_ERR(false, E_INVALID_RESPONSE);
+	if (parameter[21] != '"') return RET_ERR(false, E_INVALID_RESPONSE);
 
 	int yearOffset = atoi(&parameter[1]);
 	tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset - 1900;
@@ -710,15 +710,15 @@ bool WioLTE::GetTime(struct tm* tim)
 
 bool WioLTE::SendSMS(const char* dialNumber, const char* message)
 {
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+CMGS=\"%s\"", dialNumber)) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
-	if (!_AtSerial.ReadResponse("^> ", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^> ", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 	_AtSerial.WriteBinary((const byte*)message, strlen(message));
 	_AtSerial.WriteBinary((const byte*)"\x1a", 1);
-	if (!_AtSerial.ReadResponse("^OK$", 120000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 120000, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
@@ -727,48 +727,48 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 {
 	int messageIndex = GetFirstIndexOfReceivedSMS();
 	if (messageIndex == -2) return RET_OK(0);
-	if (messageIndex < 0) return RET_ERR(-1, E_UNKNOWN);
+	if (messageIndex < 0) return RET_ERR(-1, E_INVALID_ARGUMENT);
 
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=0", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+CMGF=0", "^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+CMGR=%d", messageIndex)) return RET_ERR(-1, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
 
-	if (!_AtSerial.ReadResponse("^\\+CMGR: .*$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+CMGR: .*$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	std::string response;
-	if (!_AtSerial.ReadResponse("^(.*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^(.*)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
 	const char* hex = response.c_str();
 
 	int hexSize = strlen(hex);
-	if (hexSize % 2 != 0) return RET_ERR(-1, E_UNKNOWN);
+	if (hexSize % 2 != 0) return RET_ERR(-1, E_INVALID_RESPONSE);
 	int dataSize = hexSize / 2;
 	byte* data = (byte*)alloca(dataSize);
-	if (!ConvertHexToBytes(hex, data, dataSize)) return RET_ERR(-1, E_UNKNOWN);
+	if (!ConvertHexToBytes(hex, data, dataSize)) return RET_ERR(-1, E_INVALID_RESPONSE);
 	byte* dataEnd = &data[dataSize];
 
 	// 3GPP TS 23.040 https://www.etsi.org/deliver/etsi_ts/123000_123099/123040/09.03.00_60/ts_123040v090300p.pdf
 	// 3GPP TS 23.038 https://www.etsi.org/deliver/etsi_ts/123000_123099/123038/10.00.00_60/ts_123038v100000p.pdf
 	byte* smscInfoSize = data;
 	byte* tpMti = smscInfoSize + 1 + *smscInfoSize;
-	if (tpMti >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
-	if ((*tpMti & 0x03) != 0x00) return RET_ERR(-1, E_UNKNOWN);	// SMS-DELIVER
+	if (tpMti >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
+	if ((*tpMti & 0x03) != 0x00) return RET_ERR(-1, E_INVALID_RESPONSE);	// SMS-DELIVER
 	bool tpUdhi = *tpMti & 0b01000000 ? true : false;
 	byte* tpOaSize = tpMti + 1;
-	if (tpOaSize >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+	if (tpOaSize >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
 	byte* tpPid = tpOaSize + 2 + *tpOaSize / 2 + *tpOaSize % 2;
-	if (tpPid >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+	if (tpPid >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
 	byte* tpDcs = tpPid + 1;
-	if (tpDcs >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+	if (tpDcs >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
 	byte* tpScts = tpDcs + 1;
-	if (tpScts >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+	if (tpScts >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
 	byte* tpUd = tpScts + 7;
-	if (tpUd >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+	if (tpUd >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
 
 	if (dialNumber != NULL && dialNumberSize >= 1)
 	{
-		if (!SmAddressFieldToString(tpOaSize, dialNumber, dialNumberSize)) return RET_ERR(-1, E_UNKNOWN);
+		if (!SmAddressFieldToString(tpOaSize, dialNumber, dialNumberSize)) return RET_ERR(-1, E_INVALID_RESPONSE);
 	}
 
 	int smSize;
@@ -780,12 +780,12 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 	}
 	else
 	{
-		if (&tpUd[1] >= dataEnd) return RET_ERR(-1, E_UNKNOWN);
+		if (&tpUd[1] >= dataEnd) return RET_ERR(-1, E_INVALID_RESPONSE);
 		smSize = tpUd[0] - (1 + tpUd[1]);
 		sm = tpUd + 2 + tpUd[1];
 	}
 
-	if (messageSize < smSize + 1) return RET_ERR(-1, E_UNKNOWN);
+	if (messageSize < smSize + 1) return RET_ERR(-1, E_INVALID_RESPONSE);
 	for (int i = 0; i < smSize; i++) {
 		int offset = i - i / 8;
 		int shift = i % 8;
@@ -798,7 +798,7 @@ int WioLTE::ReceiveSMS(char* message, int messageSize, char* dialNumber, int dia
 	}
 	message[smSize] = '\0';
 
-	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	return RET_OK(smSize);
 }
@@ -811,7 +811,7 @@ bool WioLTE::DeleteReceivedSMS()
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+CMGD=%d", messageIndex)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
@@ -827,16 +827,16 @@ bool WioLTE::WaitForCSRegistration(long timeout)
 		int status;
 
 		_AtSerial.WriteCommand("AT+CREG?");
-		if (!_AtSerial.ReadResponse("^\\+CREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^\\+CREG: (.*)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
 		parser.Parse(response.c_str());
-		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
+		if (parser.Size() < 2) return RET_ERR(false, E_INVALID_RESPONSE);
 		//resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
-		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (status == 0) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (status == 0) return RET_ERR(false, E_INVALID_RESPONSE);
 		if (status == 1 || status == 5) break;
 
-		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_TIMEOUT);
 		_Delay(POLLING_INTERVAL);
 	}
 
@@ -854,26 +854,26 @@ bool WioLTE::WaitForPSRegistration(long timeout)
 		int status;
 
 		_AtSerial.WriteCommand("AT+CGREG?");
-		if (!_AtSerial.ReadResponse("^\\+CGREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^\\+CGREG: (.*)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
 		parser.Parse(response.c_str());
-		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
+		if (parser.Size() < 2) return RET_ERR(false, E_INVALID_RESPONSE);
 		//resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
-		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (status == 0) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (status == 0) return RET_ERR(false, E_INVALID_RESPONSE);
 		if (status == 1 || status == 5) break;
 
 		_AtSerial.WriteCommand("AT+CEREG?");
-		if (!_AtSerial.ReadResponse("^\\+CEREG: (.*)$", 500, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^\\+CEREG: (.*)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
 		parser.Parse(response.c_str());
-		if (parser.Size() < 2) return RET_ERR(false, E_UNKNOWN);
+		if (parser.Size() < 2) return RET_ERR(false, E_INVALID_RESPONSE);
 		//resultCode = atoi(parser[0]);
 		status = atoi(parser[1]);
-		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (status == 0) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (status == 0) return RET_ERR(false, E_INVALID_RESPONSE);
 		if (status == 1 || status == 5) break;
 
-		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_TIMEOUT);
 		_Delay(POLLING_INTERVAL);
 	}
 
@@ -889,7 +889,7 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	if (!WaitForPSRegistration(0)) {
 		StringBuilder str;
 		if (!str.WriteFormat("AT+QICSGP=1,1,\"%s\",\"%s\",\"%s\",3", accessPointName, userName, password)) return RET_ERR(false, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 		sw.Restart();
 
@@ -910,16 +910,16 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 	sw.Restart();
 	while (true) {
 		_AtSerial.WriteCommand("AT+QIACT=1");
-		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 150000, &response)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 150000, &response)) return RET_ERR(false, E_TIMEOUT);
 		if (response == "OK") break;
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QIGETERROR", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (sw.ElapsedMilliseconds() >= 150000) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QIGETERROR", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (sw.ElapsedMilliseconds() >= 150000) return RET_ERR(false, E_TIMEOUT);
 		_Delay(POLLING_INTERVAL);
 	}
 
 	// for debug.
 #ifdef WIO_DEBUG
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIACT?", "^OK$", 150000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIACT?", "^OK$", 150000, NULL)) return RET_ERR(false, E_TIMEOUT);
 #endif // WIO_DEBUG
 
 	return RET_OK(true);
@@ -927,7 +927,7 @@ bool WioLTE::Activate(const char* accessPointName, const char* userName, const c
 
 bool WioLTE::Deactivate()
 {
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIDEACT=1", "^OK$", 40000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QIDEACT=1", "^OK$", 40000, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
@@ -937,9 +937,9 @@ bool WioLTE::SyncTime(const char* host)
 	StringBuilder str;
 	std::string response;
 	if (!str.WriteFormat("AT+QNTP=1,\"%s\"", host)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^\\+QNTP: (.*)$", 125000, &response)) return RET_ERR(false, E_UNKNOWN);
-	if (strncmp(response.c_str(), "0,", 2) != 0) return RET_ERR(-1, E_UNKNOWN); // check whether the command finished successfully
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+	if (!_AtSerial.ReadResponse("^\\+QNTP: (.*)$", 125000, &response)) return RET_ERR(false, E_TIMEOUT);
+	if (strncmp(response.c_str(), "0,", 2) != 0) return RET_ERR(-1, E_INVALID_RESPONSE); // check whether the command finished successfully
 
 	return RET_OK(true);
 }
@@ -949,17 +949,17 @@ bool WioLTE::GetLocation(double* longitude, double* latitude)
 	std::string response;
 	ArgumentParser parser;
 
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QLOCCFG=\"contextid\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QLOCCFG=\"contextid\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	_AtSerial.WriteCommand("AT+QCELLLOC");
-	if (!_AtSerial.ReadResponse("^(\\+QCELLLOC: .*|\\+CME ERROR: .*)$", 60000, &response)) return RET_ERR(false, E_UNKNOWN);
-	if (strncmp(response.c_str(), "+QCELLLOC: ", 11) != 0) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^(\\+QCELLLOC: .*|\\+CME ERROR: .*)$", 60000, &response)) return RET_ERR(false, E_TIMEOUT);
+	if (strncmp(response.c_str(), "+QCELLLOC: ", 11) != 0) return RET_ERR(false, E_INVALID_RESPONSE);
 
 	parser.Parse(&response.c_str()[11]);
-	if (parser.Size() != 2) return RET_ERR(false, E_UNKNOWN);
+	if (parser.Size() != 2) return RET_ERR(false, E_INVALID_RESPONSE);
 	*longitude = atof(parser[0]);
 	*latitude = atof(parser[1]);
-	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
@@ -969,8 +969,8 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 	std::string response;
 	ArgumentParser parser;
 
-	if (host == NULL || host[0] == '\0') return RET_ERR(-1, E_UNKNOWN);
-	if (port < 0 || 65535 < port) return RET_ERR(-1, E_UNKNOWN);
+	if (host == NULL || host[0] == '\0') return RET_ERR(-1, E_INVALID_ARGUMENT);
+	if (port < 0 || 65535 < port) return RET_ERR(-1, E_INVALID_ARGUMENT);
 
 	const char* typeStr;
 	switch (type) {
@@ -981,7 +981,7 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 		typeStr = "UDP";
 		break;
 	default:
-		return RET_ERR(-1, E_UNKNOWN);
+		return RET_ERR(-1, E_INVALID_ARGUMENT);
 	}
 
 	bool connectIdUsed[CONNECT_ID_NUM];
@@ -989,12 +989,12 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 
 	_AtSerial.WriteCommand("AT+QISTATE?");
 	do {
-		if (!_AtSerial.ReadResponse("^(OK|\\+QISTATE: .*)$", 10000, &response)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^(OK|\\+QISTATE: .*)$", 10000, &response)) return RET_ERR(-1, E_TIMEOUT);
 		if (strncmp(response.c_str(), "+QISTATE: ", 10) == 0) {
 			parser.Parse(&response.c_str()[10]);
 			if (parser.Size() >= 1) {
 				int connectId = atoi(parser[0]);
-				if (connectId < 0 || CONNECT_ID_NUM <= connectId) return RET_ERR(-1, E_UNKNOWN);
+				if (connectId < 0 || CONNECT_ID_NUM <= connectId) return RET_ERR(-1, E_INVALID_RESPONSE);
 				connectIdUsed[connectId] = true;
 			}
 		}
@@ -1004,29 +1004,29 @@ int WioLTE::SocketOpen(const char* host, int port, SocketType type)
 	for (connectId = 0; connectId < CONNECT_ID_NUM; connectId++) {
 		if (!connectIdUsed[connectId]) break;
 	}
-	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1, E_UNKNOWN);
+	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1, E_NOT_ENOUGH_RESOURCE);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QIOPEN=1,%d,\"%s\",\"%s\",%d", connectId, typeStr, host, port)) return RET_ERR(-1, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 150000, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 150000, NULL)) return RET_ERR(-1, E_TIMEOUT);
 	str.Clear();
 	if (!str.WriteFormat("^\\+QIOPEN: %d,0$", connectId)) return RET_ERR(-1, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse(str.GetString(), 150000, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse(str.GetString(), 150000, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	return RET_OK(connectId);
 }
 
 bool WioLTE::SocketSend(int connectId, const byte* data, int dataSize)
 {
-	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false, E_UNKNOWN);
-	if (dataSize > 1460) return RET_ERR(false, E_UNKNOWN);
+	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false, E_INVALID_ARGUMENT);
+	if (dataSize > 1460) return RET_ERR(false, E_INVALID_ARGUMENT);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QISEND=%d,%d", connectId, dataSize)) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
-	if (!_AtSerial.ReadResponse("^>", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^>", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 	_AtSerial.WriteBinary(data, dataSize);
-	if (!_AtSerial.ReadResponse("^SEND OK$", 5000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^SEND OK$", 5000, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
@@ -1040,18 +1040,18 @@ int WioLTE::SocketReceive(int connectId, byte* data, int dataSize)
 {
 	std::string response;
 
-	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1, E_UNKNOWN);
+	if (connectId >= CONNECT_ID_NUM) return RET_ERR(-1, E_INVALID_ARGUMENT);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QIRD=%d", connectId)) return RET_ERR(-1, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
-	if (!_AtSerial.ReadResponse("^\\+QIRD: (.*)$", 500, &response)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QIRD: (.*)$", 500, &response)) return RET_ERR(-1, E_TIMEOUT);
 	int dataLength = atoi(response.c_str());
 	if (dataLength >= 1) {
-		if (dataLength > dataSize) return RET_ERR(-1, E_UNKNOWN);
-		if (!_AtSerial.ReadBinary(data, dataLength, 500)) return RET_ERR(-1, E_UNKNOWN);
+		if (dataLength > dataSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
+		if (!_AtSerial.ReadBinary(data, dataLength, 500)) return RET_ERR(-1, E_TIMEOUT);
 	}
-	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	return RET_OK(dataLength);
 }
@@ -1090,11 +1090,11 @@ int WioLTE::SocketReceive(int connectId, char* data, int dataSize, long timeout)
 
 bool WioLTE::SocketClose(int connectId)
 {
-	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false, E_UNKNOWN);
+	if (connectId >= CONNECT_ID_NUM) return RET_ERR(false, E_INVALID_ARGUMENT);
 
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QICLOSE=%d", connectId)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 10000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse(str.GetString(), "^OK$", 10000, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	return RET_OK(true);
 }
@@ -1118,13 +1118,13 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpH
 	if (timeout % 1000 > 0) timeoutSec++;
 
 	if (strncmp(url, "https:", 6) == 0) {
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 	}
 
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",1", "^OK$", 500, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",1", "^OK$", 500, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	if (!HttpSetUrl(url)) return RET_ERR(-1, E_UNKNOWN);
 
@@ -1132,7 +1132,7 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpH
 	int hostLength;
 	const char* uri;
 	int uriLength;
-	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false, E_UNKNOWN);
+	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false, E_INVALID_ARGUMENT);
 
 	StringBuilder headerSb;
 	headerSb.Write("GET ");
@@ -1160,31 +1160,31 @@ int WioLTE::HttpGet(const char* url, char* data, int dataSize, const WioLTEHttpH
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QHTTPGET=%d,%d", timeoutSec, headerSb.Length())) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
-	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_TIMEOUT);
 	const char* headerStr = headerSb.GetString();
 	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
-	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^\\+QHTTPGET: (.*)$", (timeoutSec + 1) * 1000, &response)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_TIMEOUT);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPGET: (.*)$", (timeoutSec + 1) * 1000, &response)) return RET_ERR(-1, E_TIMEOUT);
 
 	parser.Parse(response.c_str());
-	if (parser.Size() < 1) return RET_ERR(-1, E_UNKNOWN);
-	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1, E_UNKNOWN);
+	if (parser.Size() < 1) return RET_ERR(-1, E_INVALID_RESPONSE);
+	if (strcmp(parser[0], "0") != 0) return RET_ERR(-1, E_INVALID_RESPONSE);
 	int contentLength = parser.Size() >= 3 ? atoi(parser[2]) : -1;
 
 	_AtSerial.WriteCommand("AT+QHTTPREAD");
-	if (!_AtSerial.ReadResponse("^CONNECT$", 1000, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^CONNECT$", 1000, NULL)) return RET_ERR(-1, E_TIMEOUT);
 	if (contentLength >= 0) {
-		if (contentLength + 1 > dataSize) return RET_ERR(-1, E_UNKNOWN);
-		if (!_AtSerial.ReadBinary((byte*)data, contentLength, 60000)) return RET_ERR(-1, E_UNKNOWN);
+		if (contentLength + 1 > dataSize) return RET_ERR(-1, E_NOT_ENOUGH_SIZE);
+		if (!_AtSerial.ReadBinary((byte*)data, contentLength, 60000)) return RET_ERR(-1, E_TIMEOUT);
 		data[contentLength] = '\0';
 
-		if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(-1, E_TIMEOUT);
 	}
 	else {
-		if (!_AtSerial.ReadResponseQHTTPREAD(data, dataSize, 60000)) return RET_ERR(-1, E_UNKNOWN);
+		if (!_AtSerial.ReadResponseQHTTPREAD(data, dataSize, 60000)) return RET_ERR(-1, E_TIMEOUT);
 		contentLength = strlen(data);
 	}
-	if (!_AtSerial.ReadResponse("^\\+QHTTPREAD: 0$", 1000, NULL)) return RET_ERR(-1, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPREAD: 0$", 1000, NULL)) return RET_ERR(-1, E_TIMEOUT);
 
 	return RET_OK(contentLength);
 }
@@ -1209,13 +1209,13 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	if (timeout % 1000 > 0) timeoutSec++;
 
 	if (strncmp(url, "https:", 6) == 0) {
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
-		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"sslctxid\",1"         , "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"sslversion\",1,4"      , "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"ciphersuite\",1,0XFFFF", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
+		if (!_AtSerial.WriteCommandAndReadResponse("AT+QSSLCFG=\"seclevel\",1,0"        , "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 	}
 
-	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.WriteCommandAndReadResponse("AT+QHTTPCFG=\"requestheader\",1", "^OK$", 500, NULL)) return RET_ERR(false, E_TIMEOUT);
 
 	if (!HttpSetUrl(url)) return RET_ERR(false, E_UNKNOWN);
 
@@ -1223,7 +1223,7 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	int hostLength;
 	const char* uri;
 	int uriLength;
-	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false, E_UNKNOWN);
+	if (!SplitUrl(url, &host, &hostLength, &uri, &uriLength)) return RET_ERR(false, E_INVALID_ARGUMENT);
 
 	StringBuilder headerSb;
 	headerSb.Write("POST ");
@@ -1252,15 +1252,15 @@ bool WioLTE::HttpPost(const char* url, const char* data, int* responseCode, cons
 	StringBuilder str;
 	if (!str.WriteFormat("AT+QHTTPPOST=%d,%d,%d", headerSb.Length() + strlen(data), timeoutSec, timeoutSec)) return RET_ERR(false, E_UNKNOWN);
 	_AtSerial.WriteCommand(str.GetString());
-	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^CONNECT$", 60000, NULL)) return RET_ERR(false, E_TIMEOUT);
 	const char* headerStr = headerSb.GetString();
 	_AtSerial.WriteBinary((const byte*)headerStr, strlen(headerStr));
 	_AtSerial.WriteBinary((const byte*)data, strlen(data));
-	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_UNKNOWN);
-	if (!_AtSerial.ReadResponse("^\\+QHTTPPOST: (.*)$", (timeoutSec + 1) * 1000, &response)) return RET_ERR(false, E_UNKNOWN);
+	if (!_AtSerial.ReadResponse("^OK$", 1000, NULL)) return RET_ERR(false, E_TIMEOUT);
+	if (!_AtSerial.ReadResponse("^\\+QHTTPPOST: (.*)$", (timeoutSec + 1) * 1000, &response)) return RET_ERR(false, E_TIMEOUT);
 	parser.Parse(response.c_str());
-	if (parser.Size() < 1) return RET_ERR(false, E_UNKNOWN);
-	if (strcmp(parser[0], "0") != 0) return RET_ERR(false, E_UNKNOWN);
+	if (parser.Size() < 1) return RET_ERR(false, E_INVALID_RESPONSE);
+	if (strcmp(parser[0], "0") != 0) return RET_ERR(false, E_INVALID_RESPONSE);
 	if (parser.Size() < 2) {
 		*responseCode = -1;
 	}
@@ -1281,7 +1281,7 @@ bool WioLTE::EnableGNSS(long timeout)
 		_AtSerial.WriteCommand("AT+QGPS=1");
 		if (!_AtSerial.ReadResponse("^(OK|ERROR)$", 500, &response)) return RET_ERR(false, E_TIMEOUT);
 		if (response == "OK") break;
-		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_UNKNOWN);
+		if (sw.ElapsedMilliseconds() >= (unsigned long)timeout) return RET_ERR(false, E_TIMEOUT);
 		_Delay(POLLING_INTERVAL);
 	}
 
@@ -1309,17 +1309,17 @@ bool WioLTE::GetGNSSLocation(double* longitude, double* latitude, double* altitu
 				return RET_ERR(false, E_GNSS_NOT_FIXED);
 			}
 			else {
-				return RET_ERR(false, E_UNKNOWN);
+				return RET_ERR(false, E_INVALID_RESPONSE);
 			}
 		}
 		locStr = response;
 	}
 
 	// parse the response: utc time, latitude, longitude, horizontal precision, altitude
-	if (strlen(locStr.c_str()) < 10) return RET_ERR(false, E_UNKNOWN);
+	if (strlen(locStr.c_str()) < 10) return RET_ERR(false, E_INVALID_RESPONSE);
 	ArgumentParser parser;
 	parser.Parse(&locStr.c_str()[10]);
-	if (parser.Size() < 5) return RET_ERR(false, E_UNKNOWN);
+	if (parser.Size() < 5) return RET_ERR(false, E_INVALID_RESPONSE);
 
 	// latitude
 	if (latitude != NULL) {
@@ -1346,13 +1346,13 @@ bool WioLTE::GetGNSSLocation(double* longitude, double* latitude, double* altitu
 
 	// utc time
 	if (tim != NULL) {
-		if (parser.Size() < 10) return RET_ERR(false, E_UNKNOWN);
+		if (parser.Size() < 10) return RET_ERR(false, E_INVALID_RESPONSE);
 
 		const char* ymd = parser[9];	// date. ddmmyy
 		const char* hms = parser[0];	// time. hhmmss.s
 
-		if (strlen(ymd) != 6) return RET_ERR(false, E_UNKNOWN);
-		if (strlen(hms) < 6) return RET_ERR(false, E_UNKNOWN);
+		if (strlen(ymd) != 6) return RET_ERR(false, E_INVALID_RESPONSE);
+		if (strlen(hms) < 6) return RET_ERR(false, E_INVALID_RESPONSE);
 
 		int yearOffset = Convert2DigitsToInt(&ymd[4]);
 		tim->tm_year = (yearOffset >= 80 ? 1900 : 2000) + yearOffset - 1900;
