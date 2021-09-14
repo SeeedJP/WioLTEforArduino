@@ -10,7 +10,7 @@ void setup()
   SerialUSB.println("--- START ---------------------------------------------------");
   
   SerialUSB.println("### I/O Initialize.");
-  GpsBegin(&SerialUART);
+  GpsBegin(&Serial);
   Wio.Init();
   
   SerialUSB.println("### Power supply ON.");
