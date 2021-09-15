@@ -1,6 +1,6 @@
 #include <WioLTEforArduino.h>
 
-WioLTE Wio;
+WioCellular Wio;
 
 void setup()
 {

@@ -16,7 +16,7 @@
 
 #define INTERVAL          (60000)
 
-WioLTE Wio;
+WioCellular Wio;
 WioLTEClient WioClient(&Wio);
 PubSubClient MqttClient;
 
@@ -36,7 +36,7 @@ void setup() {
   Wio.Init();
   
   SerialUSB.println("### Power supply ON.");
-  Wio.PowerSupplyLTE(true);
+  Wio.PowerSupplyCellular(true);
   delay(500);
 
   SerialUSB.println("### Turn on or reset.");

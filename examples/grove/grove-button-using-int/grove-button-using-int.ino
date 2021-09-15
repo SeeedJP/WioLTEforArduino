@@ -6,7 +6,7 @@
 #define COLOR_ON	127, 127, 127
 #define COLOR_OFF	  0,   0,   0
 
-WioLTE Wio;
+WioCellular Wio;
 
 volatile bool StateChanged = false;
 volatile bool State = false;

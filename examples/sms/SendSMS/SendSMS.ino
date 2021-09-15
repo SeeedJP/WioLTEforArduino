@@ -2,7 +2,7 @@
 
 #define PHONE_NUMBER  "01234567890"
 
-WioLTE Wio;
+WioCellular Wio;
 
 void setup() {
   delay(200);
@@ -14,7 +14,7 @@ void setup() {
   Wio.Init();
   
   SerialUSB.println("### Power supply ON.");
-  Wio.PowerSupplyLTE(true);
+  Wio.PowerSupplyCellular(true);
   delay(500);
 
   SerialUSB.println("### Turn on or reset.");

@@ -3,7 +3,7 @@
 
 #define INTERVAL    (100)
 
-WioLTE Wio;
+WioCellular Wio;
 ADXL345 Accel;
 
 void setup()

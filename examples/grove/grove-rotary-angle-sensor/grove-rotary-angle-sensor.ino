@@ -4,7 +4,7 @@
 #define INTERVAL          (500)
 #define BAR_LENGTH        (40)
 
-WioLTE Wio;
+WioCellular Wio;
 
 void setup() {
   delay(200);

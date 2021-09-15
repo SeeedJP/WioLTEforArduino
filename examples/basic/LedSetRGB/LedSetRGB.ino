@@ -3,7 +3,7 @@
 #define LED_VALUE (10)
 #define INTERVAL  (50)
 
-WioLTE Wio;
+WioCellular Wio;
 int Hue = 0;
 
 void setup() {
