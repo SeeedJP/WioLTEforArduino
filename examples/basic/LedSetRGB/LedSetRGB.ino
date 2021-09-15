@@ -9,6 +9,7 @@ int Hue = 0;
 void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   

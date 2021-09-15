@@ -16,6 +16,7 @@ WioCellular Wio;
 void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   
@@ -61,4 +62,3 @@ err:
   SerialUSB.println("### Wait.");
   delay(INTERVAL);
 }
-

@@ -1,15 +1,17 @@
 #include <WioLTEforArduino.h>
-#include <ADXL345.h>          // https://github.com/Seeed-Studio/Accelerometer_ADXL345
 
 #define INTERVAL    (100)
 
-WioCellular Wio;
-ADXL345 Accel;
+#define I2C_ADDRESS   (0x53)
+#define REG_POWER_CTL (0x2d)
+#define REG_DATAX0    (0x32)
 
-void setup()
-{
+WioCellular Wio;
+
+void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   
@@ -19,17 +21,18 @@ void setup()
   SerialUSB.println("### Power supply ON.");
   Wio.PowerSupplyGrove(true);
   delay(500);
-  Accel.powerOn();
-  
+
+  SerialUSB.println("### Sensor Initialize.");
+  AccelInitialize();
+
   SerialUSB.println("### Setup completed.");
 }
 
-void loop()
-{
-  int x;
-  int y;
-  int z;
-  Accel.readXYZ(&x, &y, &z);
+void loop() {
+  float x;
+  float y;
+  float z;
+  AccelReadXYZ(&x, &y, &z);
   SerialUSB.print(x);
   SerialUSB.print(' ');
   SerialUSB.print(y);
@@ -39,3 +42,39 @@ void loop()
   delay(INTERVAL);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+//
+
+void AccelInitialize() {
+  Wire.begin();
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(REG_POWER_CTL);
+  Wire.write(0x08);
+  Wire.endTransmission();
+}
+
+void AccelReadXYZ(float* x, float* y, float* z) {
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(REG_DATAX0);
+  Wire.endTransmission();
+
+  if (Wire.requestFrom(I2C_ADDRESS, 6) != 6) {
+    *x = 0;
+    *y = 0;
+    *z = 0;
+    return;
+  }
+
+  int16_t val;
+  ((uint8_t*)&val)[0] = Wire.read();
+  ((uint8_t*)&val)[1] = Wire.read();
+  *x = val * 2.0 / 512;
+  ((uint8_t*)&val)[0] = Wire.read();
+  ((uint8_t*)&val)[1] = Wire.read();
+  *y = val * 2.0 / 512;
+  ((uint8_t*)&val)[0] = Wire.read();
+  ((uint8_t*)&val)[1] = Wire.read();
+  *z = val * 2.0 / 512;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////

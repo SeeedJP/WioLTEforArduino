@@ -12,6 +12,7 @@ WioCellular Wio;
 void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
 
@@ -115,14 +116,12 @@ err:
 
 int TemperatureAndHumidityPin;
 
-void TemperatureAndHumidityBegin(int pin)
-{
+void TemperatureAndHumidityBegin(int pin) {
   TemperatureAndHumidityPin = pin;
   DHT11Init(TemperatureAndHumidityPin);
 }
 
-bool TemperatureAndHumidityRead(float* temperature, float* humidity)
-{
+bool TemperatureAndHumidityRead(float* temperature, float* humidity) {
   byte data[5];
 
   DHT11Start(TemperatureAndHumidityPin);
@@ -146,14 +145,12 @@ bool TemperatureAndHumidityRead(float* temperature, float* humidity)
 
 #ifdef SENSOR_PIN
 
-void DHT11Init(int pin)
-{
+void DHT11Init(int pin) {
   digitalWrite(pin, HIGH);
   pinMode(pin, OUTPUT);
 }
 
-void DHT11Start(int pin)
-{
+void DHT11Start(int pin) {
   // Host the start of signal
   digitalWrite(pin, LOW);
   delay(18);
@@ -169,8 +166,7 @@ void DHT11Start(int pin)
   while (!digitalRead(pin)) ;
 }
 
-byte DHT11ReadByte(int pin)
-{
+byte DHT11ReadByte(int pin) {
   byte data = 0;
 
   for (int i = 0; i < 8; i++) {
@@ -188,16 +184,14 @@ byte DHT11ReadByte(int pin)
   return data;
 }
 
-void DHT11Finish(int pin)
-{
+void DHT11Finish(int pin) {
   // Releases the bus
   while (!digitalRead(pin)) ;
   digitalWrite(pin, HIGH);
   pinMode(pin, OUTPUT);
 }
 
-bool DHT11Check(const byte* data, int dataSize)
-{
+bool DHT11Check(const byte* data, int dataSize) {
   if (dataSize != 5) return false;
 
   byte sum = 0;

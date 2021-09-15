@@ -2,10 +2,10 @@
 
 WioCellular Wio;
 
-void setup()
-{
+void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   
@@ -20,8 +20,7 @@ void setup()
   SerialUSB.println("### Setup completed.");
 }
 
-void loop()
-{
+void loop() {
   const char* data = GpsRead();
   if (data != NULL && strncmp(data, "$GPGGA,", 7) == 0) {
     SerialUSB.println(data);
@@ -37,15 +36,13 @@ HardwareSerial* GpsSerial;
 char GpsData[100];
 char GpsDataLength;
 
-void GpsBegin(HardwareSerial* serial)
-{
+void GpsBegin(HardwareSerial* serial) {
   GpsSerial = serial;
   GpsSerial->begin(9600);
   GpsDataLength = 0;
 }
 
-const char* GpsRead()
-{
+const char* GpsRead() {
   while (GpsSerial->available()) {
     char data = GpsSerial->read();
     if (data == '\r') continue;
@@ -66,4 +63,3 @@ const char* GpsRead()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-

@@ -1,3 +1,4 @@
+#include <WioLTEforArduino.h>
 #if defined ARDUINO_ARCH_STM32F4
 #include <SD.h>                    // https://github.com/Seeed-Studio/SD
 #elif defined ARDUINO_ARCH_STM32
@@ -6,12 +7,21 @@
 
 #define FILE_NAME "test.txt"
 
-void setup()
-{
+WioCellular Wio;
+
+void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
+
+  SerialUSB.println("### I/O Initialize.");
+  Wio.Init();
+
+  SerialUSB.println("### Power supply ON.");
+  Wio.PowerSupplySD(true);
+  delay(500);
 
   SerialUSB.println("### Initialize SD card.");
   if (!SD.begin()) {
@@ -45,7 +55,5 @@ void setup()
   SerialUSB.println("### Setup completed.");
 }
 
-void loop()
-{
+void loop() {
 }
-

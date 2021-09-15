@@ -7,6 +7,7 @@ WioCellular Wio;
 void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   
@@ -41,7 +42,9 @@ void loop() {
     goto err;
   }
   SerialUSB.print("UTC:");
-  SerialUSB.println(asctime(&now));
+  char str[100];
+  sprintf(str, "%04d/%02d/%02d %02d:%02d:%02d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  SerialUSB.println(str);
 
 err:
   delay(INTERVAL);

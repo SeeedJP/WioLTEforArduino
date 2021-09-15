@@ -1,6 +1,6 @@
 #include <WioLTEforArduino.h>
 #include <WioLTEClient.h>
-#include <PubSubClient.h>		// https://github.com/SeeedJP/pubsubclient
+#include <PubSubClient.h>		// https://github.com/knolleary/PubSubClient
 #include <stdio.h>
 
 #define APN               "soracom.io"
@@ -16,6 +16,8 @@
 
 #define INTERVAL          (60000)
 
+#define MQTT_PACKET_SIZE  (512)
+
 WioCellular Wio;
 WioCellularClient WioClient(&Wio);
 PubSubClient MqttClient;
@@ -29,6 +31,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void setup() {
   delay(200);
 
+  SerialUSB.begin(115200);
   SerialUSB.println("");
   SerialUSB.println("--- START ---------------------------------------------------");
   
@@ -52,6 +55,7 @@ void setup() {
   }
 
   SerialUSB.println("### Connecting to MQTT server \""MQTT_SERVER_HOST"\"");
+  MqttClient.setBufferSize(MQTT_PACKET_SIZE);
   MqttClient.setServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT);
   MqttClient.setCallback(callback);
   MqttClient.setClient(WioClient);
@@ -79,4 +83,3 @@ err:
     MqttClient.loop();
   }
 }
-

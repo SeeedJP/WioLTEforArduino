@@ -11,22 +11,20 @@ WioCellular Wio;
 volatile bool StateChanged = false;
 volatile bool State = false;
 
-void change_state()
-{
+void change_state() {
   State = !State;
   StateChanged = true;
 }
 
-void setup()
-{
+void setup() {
+  SerialUSB.begin(115200);
   Wio.Init();
 
   pinMode(BUTTON_PIN, INPUT);
   attachInterrupt(BUTTON_PIN, change_state, RISING);
 }
 
-void loop()
-{
+void loop() {
   if (StateChanged) {
     SerialUSB.print(State ? '*' : '.');
 

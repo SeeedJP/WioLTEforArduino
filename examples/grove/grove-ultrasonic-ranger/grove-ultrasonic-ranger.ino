@@ -6,12 +6,11 @@
 
 Ultrasonic UltrasonicRanger(ULTRASONIC_PIN);
 
-void setup()
-{
+void setup() {
+  SerialUSB.begin(115200);
 }
 
-void loop()
-{
+void loop() {
   long distance;
   distance = UltrasonicRanger.MeasureInCentimeters();
   SerialUSB.print(distance);
@@ -19,4 +18,3 @@ void loop()
   
   delay(INTERVAL);
 }
-
