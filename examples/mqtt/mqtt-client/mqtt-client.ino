@@ -17,7 +17,7 @@
 #define INTERVAL          (60000)
 
 WioCellular Wio;
-WioLTEClient WioClient(&Wio);
+WioCellularClient WioClient(&Wio);
 PubSubClient MqttClient;
 
 void callback(char* topic, byte* payload, unsigned int length) {

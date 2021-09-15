@@ -30,3 +30,5 @@ public:
 	virtual operator bool();
 
 };
+
+typedef WioLTEClient WioCellularClient;
